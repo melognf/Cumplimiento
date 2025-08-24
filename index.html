@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cumplimiento Diario — Dashboard</title>
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+  <div id="banner" class="banner" hidden></div>
+  <header>
+    <div class="wrap bar">
+      <h1>📦 Cumplimiento Diario</h1>
+      <div class="spacer"></div>
+      <label class="hint">Fecha</label>
+      <input id="fecha" type="date" />
+      <label class="switch hint" style="display:flex;align-items:center;gap:6px;">
+        <input id="toggleEmpty" type="checkbox" />
+        <span>Mostrar líneas sin plan</span>
+      </label>
+      <label class="switch hint" style="display:flex;align-items:center;gap:6px;">
+        <input id="toggleCarga" type="checkbox" />
+        <span>Modo Carga</span>
+      </label>
+      <div class="toggle" role="tablist" aria-label="Filtro de turno">
+        <button class="active" data-turno="total">Total</button>
+        <button data-turno="t1">T1 (Mañana)</button>
+        <button data-turno="t2">T2 (Tarde)</button>
+        <button data-turno="t3">T3 (Noche)</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <div class="grid" id="grid-lineas"></div>
+    </section>
+    <aside>
+      <h2>🔻 Top desvíos (peor cumplimiento)</h2>
+      <div class="list" id="lista-desvios"></div>
+      <p class="hint">Activá <strong>Modo Carga</strong>, abrí una línea con “Ver detalle” y usá <strong>➕ Nuevo sabor</strong> para cargar manualmente.</p>
+    </aside>
+  </main>
+
+  <footer class="wrap hint">Si no configuraste Firebase, se guarda <strong>localmente</strong> en este navegador. Al configurar Firebase, la app sincroniza en tiempo real.</footer>
+
+  <dialog id="modal-detalle">
+    <div class="modal-head">
+      <strong id="m-title">Detalle</strong>
+      <div class="pill" id="m-turnos">
+        <button class="active" data-turno="total">Total</button>
+        <button data-turno="t1">T1</button>
+        <button data-turno="t2">T2</button>
+        <button data-turno="t3">T3</button>
+      </div>
+      <div class="actions-inline">
+        <button id="btn-nuevo-sabor" class="primary" style="display:none">➕ Nuevo sabor</button>
+        <button class="close" onclick="document.getElementById('modal-detalle').close()">Cerrar</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <table>
+        <thead>
+          <tr>
+            <th>Sabor</th>
+            <th class="num">Plan</th>
+            <th class="num">Real</th>
+            <th class="num">Cumpl.%</th>
+            <th style="width:220px">Progreso</th>
+            <th class="num">Litros</th>
+            <th class="td-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="m-body"></tbody>
+      </table>
+    </div>
+  </dialog>
+
+  <dialog id="modal-carga">
+    <div class="modal-head">
+      <strong id="c-title">Cargar Plan/Real</strong>
+      <button class="close" onclick="document.getElementById('modal-carga').close()">Cerrar</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-carga" class="form_grid">
+        <div class="row2">
+          <div><label class="hint">Línea</label><div id="c-linea" class="badge b-yellow">-</div></div>
+          <div><label class="hint">Sabor</label>
+            <input id="c-sabor-input" type="text" placeholder="Ej: HI‑C NARANJA 2.25Lx6" />
+            <div id="c-sabor-read" class="badge b-yellow" style="display:none">-</div>
+          </div>
+        </div>
+        <div><label class="hint">Descripción (opcional)</label><div id="c-producto" class="hint"></div></div>
+        <hr/>
+        <div class="row3">
+          <div></div><div class="hint">Plan (cajas)</div><div class="hint">Real (cajas)</div>
+        </div>
+        <div class="row3">
+          <div><strong>T1</strong></div>
+          <div><input type="number" id="plan_t1" min="0" step="1" inputmode="numeric"></div>
+          <div><input type="number" id="real_t1" min="0" step="1" inputmode="numeric"></div>
+        </div>
+        <div class="row3">
+          <div><strong>T2</strong></div>
+          <div><input type="number" id="plan_t2" min="0" step="1" inputmode="numeric"></div>
+          <div><input type="number" id="real_t2" min="0" step="1" inputmode="numeric"></div>
+        </div>
+        <div class="row3">
+          <div><strong>T3</strong></div>
+          <div><input type="number" id="plan_t3" min="0" step="1" inputmode="numeric"></div>
+          <div><input type="number" id="real_t3" min="0" step="1" inputmode="numeric"></div>
+        </div>
+        <div class="row3 total_row">
+          <div><strong>Total</strong></div>
+          <div id="plan_total" class="num">0</div>
+          <div id="real_total" class="num">0</div>
+        </div>
+        <div class="row3">
+          <div><strong>Cumplimiento</strong></div>
+          <div id="cumpl_pct" class="num">-</div>
+          <div></div>
+        </div>
+        <div class="actions">
+          <button type="button" id="btn-guardar" class="primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
