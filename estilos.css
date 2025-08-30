@@ -77,8 +77,77 @@ button.primary:hover{filter:brightness(1.05)}
 /* Banner */
 .banner{position:sticky;top:0;z-index:20;background:#1a2a46;color:#cfe2ff;border-bottom:1px solid #28446f;padding:8px 16px;font-size:13px}
 
-/* En Modo Carga, permití click en líneas “muted” */
-.carga .card.muted button {
-  pointer-events: auto;
-  opacity: 1;
+/* === Responsive: tabla del modal apilada en móviles (sin scroll) === */
+.modal-body table tr.mobile{ display:none; }
+@media (max-width: 600px){
+  .modal-body table thead{ display:none; }
+  .modal-body table tr.desktop{ display:none; }
+  .modal-body table tr.mobile{ display:table-row; }
+  .m-item{ display:grid; gap:10px; }
+  .m-line1{ display:grid; grid-template-columns: 1fr auto; gap:10px; align-items:center; }
+  .m-plr{ display:grid; grid-auto-flow: column; gap:12px; font-size:12px; }
+  .m-line2 .progress{ height:10px; }
+  .m-line3{ display:grid; grid-template-columns: 1fr auto; align-items:center; gap:10px; }
+  .m-actions .primary{ width: 100%; }
+  .m-sabor{ font-weight:700; }
 }
+
+/* Ocultar Top desvíos y usar una sola columna cuando el body tenga .sin-top */
+.sin-top aside { display: none; }
+.sin-top main { grid-template-columns: 1fr; }
+
+
+/* === Per-card turno buttons: separados y centrados === */
+.pill.pill-card{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  width: 100%;
+  margin: 6px 0 10px;
+}
+
+.pill-card button{
+  background: #162032;
+  border: 1px solid #243248;
+  border-radius: 999px;
+  padding: 6px 14px;
+  min-width: 56px;
+  font-weight: 600;
+  letter-spacing: .3px;
+  transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
+}
+
+.pill-card button:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 0 0 1px #243248 inset;
+}
+
+.pill-card button.active{
+  background: #0F1A2A;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px rgba(59,130,246,.35) inset;
+}
+
+/* En pantallas chicas, que puedan pasar a dos filas pero centrados */
+@media (max-width: 420px){
+  .pill.pill-card{
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+}
+
+/* Fondo rojo */
+:root{
+  --bg: #FE001A;          /* por si usás variables */
+}
+body{
+  background: #FE001A !important;
+  color: #fff;            /* mejor contraste sobre rojo */
+}
+
