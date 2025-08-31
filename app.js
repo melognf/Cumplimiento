@@ -1,4 +1,11 @@
-// app.js — build con lápiz, nuevo sabor en vacío, sobrescritura por turno y edición exclusiva por turno
+// app.js — Dashboard Cumplimiento (v11)
+// - Botones T1/T2/T3 en cada tarjeta (cambian turno global)
+// - Modo Carga exclusivo por turno (T1/T2/T3) en el modal
+// - Plan se escribe una vez; botón "Reiniciar plan" para ponerlo en 0
+// - Evita duplicados de sabor (mismo nombre con variantes): sobreescribe
+// - Botón ✏️ en cada tarjeta cuando Modo Carga
+// - En Detalle de línea vacía aparece "➕ Nuevo sabor"
+
 import { app, db } from './firebase-config.js';
 import { doc, onSnapshot, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
@@ -8,27 +15,6 @@ const FIREBASE_READY = !!(app?.options?.projectId && !String(app.options.project
 const ALL_LINEAS = ['LINEA001','LINEA002','LINEA003','LINEA005','LINEA006','LINEA007'];
 let CURRENT_TURNO = 'total';
 let unsubscribe = null;
-
-function setTurno(newTurno){
-  CURRENT_TURNO = newTurno;
-  // Sincronizar header toggle
-  document.querySelectorAll('.toggle button').forEach(b=>{
-    if (b.dataset.turno === newTurno) b.classList.add('active'); else b.classList.remove('active');
-  });
-  // Sincronizar mini turnos del modal
-  const mTurnos = document.getElementById('m-turnos');
-  if (mTurnos){
-    mTurnos.querySelectorAll('button').forEach(b=>{
-      if (b.dataset.turno === newTurno) b.classList.add('active'); else b.classList.remove('active');
-    });
-  }
-  // Re-render
-  render(state);
-  const lineName = document.getElementById('m-title')?.textContent?.replace('Detalle · ','');
-  if (document.getElementById('modal-detalle')?.open && lineName) renderDetalle(lineName);
-  if (document.getElementById('modal-carga')?.open && typeof setExclusiveTurnoUI==='function') setExclusiveTurnoUI();
-}
-
 
 const stateDefaultFecha = (()=>{
   const now = new Date();
@@ -64,6 +50,17 @@ const $real_total = document.getElementById('real_total');
 const $cumpl_pct = document.getElementById('cumpl_pct');
 const $btnGuardar = document.getElementById('btn-guardar');
 
+// Crear botón "Reiniciar plan" si no está en el HTML
+let $btnResetPlan = document.getElementById('btn-reset-plan');
+if (!$btnResetPlan && $btnGuardar && $btnGuardar.parentElement){
+  $btnResetPlan = document.createElement('button');
+  $btnResetPlan.id = 'btn-reset-plan';
+  $btnResetPlan.type = 'button';
+  $btnResetPlan.textContent = 'Reiniciar plan';
+  $btnResetPlan.className = 'danger';
+  $btnGuardar.parentElement.insertBefore($btnResetPlan, $btnGuardar);
+}
+
 // -------- Helpers --------
 const fmt = (n) => (n==null?'-':Number(n).toLocaleString('es-AR'));
 const pct = (x) => (isFinite(x) && x>=0 ? (x).toFixed(1).replace('.',',')+'%' : '-');
@@ -92,6 +89,22 @@ function worstSkus(data, turno){
   return items.filter(x=>x.plan>0).sort((a,b)=>a.cumpl-b.cumpl).slice(0,8);
 }
 
+// Normalización de claves de sabor (evita duplicados por mayúsculas/acentos/espacios)
+function normalizeKey(s){
+  return (s||'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .trim().replace(/\s+/g,' ')
+    .toUpperCase();
+}
+function findExistingKey(linea, typed){
+  const target = normalizeKey(typed);
+  const obj = state.lineas[linea] || {};
+  for (const k of Object.keys(obj)){
+    if (normalizeKey(k) === target) return k;
+  }
+  return null;
+}
+
 // LocalStorage
 const LS = {
   key: (f)=>`cumplimiento_state_${f}`,
@@ -99,6 +112,26 @@ const LS = {
   load(fecha){ try{ const raw = localStorage.getItem(this.key(fecha)); return raw? JSON.parse(raw): null; }catch{ return null } }
 };
 function notify(msg){ if(!$banner) return; $banner.textContent = msg; $banner.hidden = false; setTimeout(()=>{ $banner.hidden = true; }, 2200); }
+
+// Cambiar turno global desde cualquier control (header, modal o tarjeta)
+function setTurno(newTurno){
+  CURRENT_TURNO = newTurno;
+  // Header
+  document.querySelectorAll('.toggle button').forEach(b=>{
+    if (b.dataset.turno === newTurno) b.classList.add('active'); else b.classList.remove('active');
+  });
+  // Modal detalle
+  const mTurnos = document.getElementById('m-turnos');
+  if (mTurnos){
+    mTurnos.querySelectorAll('button').forEach(b=>{
+      if (b.dataset.turno === newTurno) b.classList.add('active'); else b.classList.remove('active');
+    });
+  }
+  render(state);
+  const lineName = document.getElementById('m-title')?.textContent?.replace('Detalle · ','');
+  if (document.getElementById('modal-detalle')?.open && lineName) renderDetalle(lineName);
+  if (document.getElementById('modal-carga')?.open && typeof setExclusiveTurnoUI==='function') setExclusiveTurnoUI();
+}
 
 // -------- Render grid --------
 function render(data){
@@ -127,7 +160,11 @@ function render(data){
         ${isCarga ? '<button class="primary" data-new="1" title="Nuevo sabor (modo carga)">✏️</button>' : ''}
       </h3>
       <div class="badge ${badge}">Cumplimiento ${pct(c)}</div>
-<div class="pill pill-card" style="margin-top:6px;gap:6px;"><button data-turno="t1" class="${CURRENT_TURNO==='t1'?'active':''}">T1</button><button data-turno="t2" class="${CURRENT_TURNO==='t2'?'active':''}">T2</button><button data-turno="t3" class="${CURRENT_TURNO==='t3'?'active':''}">T3</button></div>
+      <div class="pill pill-card" style="margin-top:6px;gap:6px;">
+        <button data-turno="t1" class="${CURRENT_TURNO==='t1'?'active':''}">T1</button>
+        <button data-turno="t2" class="${CURRENT_TURNO==='t2'?'active':''}">T2</button>
+        <button data-turno="t3" class="${CURRENT_TURNO==='t3'?'active':''}">T3</button>
+      </div>
       <div class="kpis">
         <div class="kpi"><span class="label">Plan ${CURRENT_TURNO.toUpperCase()}</span><span class="val">${fmt(p||0)}</span></div>
         <div class="kpi"><span class="label">Real ${CURRENT_TURNO.toUpperCase()}</span><span class="val">${fmt(r||0)}</span></div>
@@ -141,12 +178,12 @@ function render(data){
     `;
     const btnDetalle = card.querySelector('button[aria-label="Ver detalle"]');
     btnDetalle.addEventListener('click',()=>openDetalle(linea));
-    card.querySelectorAll('.pill-card button').forEach(b=>{
-      b.addEventListener('click', (e)=>{ e.stopPropagation(); setTurno(b.dataset.turno); });
-    });
     if (isEmpty && !isCarga) btnDetalle.setAttribute('disabled','true');
     const btnNew = card.querySelector('button[data-new]');
     if (btnNew) btnNew.addEventListener('click',(e)=>{ e.stopPropagation(); openCarga(linea, null, true); });
+    card.querySelectorAll('.pill-card button').forEach(b=>{
+      b.addEventListener('click', (e)=>{ e.stopPropagation(); setTurno(b.dataset.turno); });
+    });
 
     $grid.appendChild(card);
   });
@@ -301,6 +338,7 @@ function openCarga(linea, sabor, isNew){
   $real_t3.value = it.real?.t3 || 0;
 
   setExclusiveTurnoUI();
+  setPlanLockUI(it);
   recalcCarga();
   $modalCarga.showModal();
 }
@@ -325,56 +363,7 @@ function recalcCarga(){
   [$plan_t1,$plan_t2,$plan_t3,$real_t1,$real_t2,$real_t3].forEach(el=>el?.addEventListener(ev, recalcCarga));
 });
 
-function setExclusiveTurnoUI(){
-  if (!$modalCarga) return;
-  const exclusive = (CURRENT_TURNO==='t1' || CURRENT_TURNO==='t2' || CURRENT_TURNO==='t3');
-
-  // 1) Ocultar la fila de encabezados "Plan / Real" cuando es exclusivo
-  const headerRow = Array.from($modalCarga.querySelectorAll('.form_grid .row3')).find(r=>{
-    const hints = r.querySelectorAll('.hint');
-    return hints.length===2 &&
-      /plan/i.test(hints[0]?.textContent||'') &&
-      /real/i.test(hints[1]?.textContent||'');
-  });
-  if (headerRow) headerRow.style.display = exclusive ? 'none' : 'grid';
-
-  // 2) Mostrar solo la fila del turno activo (T1/T2/T3)
-  const filas = Array.from($modalCarga.querySelectorAll('.form_grid .row3'));
-  const filaT1 = filas.find(r=>/^\s*T1\s*$/i.test(r.querySelector('strong')?.textContent||''));
-  const filaT2 = filas.find(r=>/^\s*T2\s*$/i.test(r.querySelector('strong')?.textContent||''));
-  const filaT3 = filas.find(r=>/^\s*T3\s*$/i.test(r.querySelector('strong')?.textContent||''));
-
-  [filaT1,filaT2,filaT3].forEach(f=>{
-    if (!f) return;
-    const isThis = (f===filaT1 && CURRENT_TURNO==='t1') || (f===filaT2 && CURRENT_TURNO==='t2') || (f===filaT3 && CURRENT_TURNO==='t3');
-    f.style.display = (!exclusive || isThis) ? 'grid' : 'none';
-    if (isThis && exclusive) addSubLabels(f); else removeSubLabels(f);
-  });
-
-  // 3) Fila Total (oculta en exclusivo)
-  const totalRow = $modalCarga.querySelector('.total_row')?.closest('.row3');
-  if (totalRow) totalRow.style.display = exclusive ? 'none' : 'grid';
-
-  // 4) Deshabilitar inputs que no corresponden
-  $plan_t1?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t1');
-  $real_t1?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t1');
-  $plan_t2?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t2');
-  $real_t2?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t2');
-  $plan_t3?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t3');
-  $real_t3?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t3');
-
-  // 5) Etiqueta de cumplimiento
-  const cumpRow = $cumpl_pct?.closest('.row3');
-  const labelEl = cumpRow?.querySelector('strong');
-  if (labelEl){
-    labelEl.textContent = exclusive ? ('Cumplimiento ' + CURRENT_TURNO.toUpperCase()) : 'Cumplimiento';
-  }
-
-  // Recalcular % con el turno activo
-  recalcCarga();
-}
-
-// ---- helpers para insertar/quitar rótulos sobre los inputs ----
+// Insertar subtítulos encima de inputs cuando es exclusivo
 function addSubLabels(row){
   const planCell = row.children?.[1];
   const realCell = row.children?.[2];
@@ -391,6 +380,138 @@ function removeSubLabels(row){
   row?.querySelectorAll('.subhint')?.forEach(n=>n.remove());
 }
 
+function setExclusiveTurnoUI(){
+  if (!$modalCarga) return;
+  const exclusive = (CURRENT_TURNO==='t1' || CURRENT_TURNO==='t2' || CURRENT_TURNO==='t3');
+
+  // Ocultar encabezado de columnas "Plan / Real" en exclusivo
+  const headerRow = Array.from($modalCarga.querySelectorAll('.form_grid .row3')).find(r=>{
+    const hints = r.querySelectorAll('.hint');
+    return hints.length===2 &&
+      /plan/i.test(hints[0]?.textContent||'') &&
+      /real/i.test(hints[1]?.textContent||'');
+  });
+  if (headerRow) headerRow.style.display = exclusive ? 'none' : 'grid';
+
+  // Filas de T1/T2/T3
+  const filas = Array.from($modalCarga.querySelectorAll('.form_grid .row3'));
+  const filaT1 = filas.find(r=>/^\s*T1\s*$/i.test(r.querySelector('strong')?.textContent||''));
+  const filaT2 = filas.find(r=>/^\s*T2\s*$/i.test(r.querySelector('strong')?.textContent||''));
+  const filaT3 = filas.find(r=>/^\s*T3\s*$/i.test(r.querySelector('strong')?.textContent||''));
+
+  [filaT1,filaT2,filaT3].forEach(f=>{
+    if (!f) return;
+    const isThis = (f===filaT1 && CURRENT_TURNO==='t1') || (f===filaT2 && CURRENT_TURNO==='t2') || (f===filaT3 && CURRENT_TURNO==='t3');
+    f.style.display = (!exclusive || isThis) ? 'grid' : 'none';
+    if (isThis && exclusive) addSubLabels(f); else removeSubLabels(f);
+  });
+
+  // Fila Total (oculta en exclusivo)
+  const totalRow = $modalCarga.querySelector('.total_row')?.closest('.row3');
+  if (totalRow) totalRow.style.display = exclusive ? 'none' : 'grid';
+
+  // Deshabilitar inputs que no corresponden
+  $plan_t1?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t1');
+  $real_t1?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t1');
+  $plan_t2?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t2');
+  $real_t2?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t2');
+  $plan_t3?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t3');
+  $real_t3?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t3');
+
+  // Etiqueta de cumplimiento
+  const cumpRow = $cumpl_pct?.closest('.row3');
+  const labelEl = cumpRow?.querySelector('strong');
+  if (labelEl){
+    labelEl.textContent = exclusive ? ('Cumplimiento ' + CURRENT_TURNO.toUpperCase()) : 'Cumplimiento';
+  }
+  recalcCarga();
+}
+
+// Lock del plan + botón reiniciar
+// Lock del plan + botón reiniciar (usando readonly para que SIEMPRE se vea el valor)
+function setPlanLockUI(it){
+  const exclusive = (CURRENT_TURNO==='t1' || CURRENT_TURNO==='t2' || CURRENT_TURNO==='t3');
+
+  // Quitar bloqueos previos en los 3 inputs de Plan
+  [$plan_t1,$plan_t2,$plan_t3].forEach(el=>{
+    if (!el) return;
+    el.removeAttribute('readonly');
+    el.classList.remove('is-locked');
+    if (!exclusive) el.removeAttribute('disabled'); // en Total no hace falta disabled
+  });
+
+  // ¿Está cargado el plan?
+  const lock = exclusive
+    ? ((it?.plan?.[CURRENT_TURNO]||0) > 0)
+    : (((it?.plan?.t1||0)+(it?.plan?.t2||0)+(it?.plan?.t3||0)) > 0);
+
+  if (exclusive){
+    // En modo exclusivo: solo el turno activo se bloquea (readonly) si ya hay plan
+    const el = document.getElementById('plan_' + CURRENT_TURNO);
+    if (el && lock){
+      el.setAttribute('readonly','readonly');
+      el.classList.add('is-locked');
+    }
+    // los otros turnos pueden seguir disabled por setExclusiveTurnoUI (están ocultos)
+  } else {
+    // En Total: si hay plan en alguno, dejamos los 3 en readonly
+    if (lock){
+      [$plan_t1,$plan_t2,$plan_t3].forEach(el=>{
+        if (!el) return;
+        el.setAttribute('readonly','readonly');
+        el.classList.add('is-locked');
+      });
+    }
+  }
+
+  // Botón Reiniciar: siempre visible; habilitado solo si hay plan
+  if ($btnResetPlan){
+    $btnResetPlan.style.display = '';
+    $btnResetPlan.disabled = !lock;
+  }
+  return lock;
+}
+
+
+async function resetPlanActual(){
+  const { linea, sabor, isNew } = cargaCtx;
+  if (isNew){
+    $plan_t1.value = 0; $plan_t2.value = 0; $plan_t3.value = 0;
+    setPlanLockUI({ plan:{t1:0,t2:0,t3:0} });
+    recalcCarga();
+    return;
+  }
+  const it = state.lineas[linea]?.[sabor];
+  if (!it){ return; }
+  const exclusive = (CURRENT_TURNO==='t1' || CURRENT_TURNO==='t2' || CURRENT_TURNO==='t3');
+  if (exclusive){
+    it.plan[CURRENT_TURNO] = 0;
+  } else {
+    it.plan = { t1:0, t2:0, t3:0, total:0 };
+  }
+  it.plan.total = (it.plan.t1||0)+(it.plan.t2||0)+(it.plan.t3||0);
+  $plan_t1.value = it.plan.t1||0;
+  $plan_t2.value = it.plan.t2||0;
+  $plan_t3.value = it.plan.t3||0;
+  setPlanLockUI(it);
+  recalcCarga();
+
+  const fechaISO = $fecha?.value || state.fecha;
+  LS.save(fechaISO, state);
+  if (FIREBASE_READY){
+    try{
+      const ref = doc(db, 'cumplimiento', fechaISO);
+      await setDoc(ref, { lineas: { [linea]: { [sabor]: { producto: it.producto||sabor, plan: it.plan, real: it.real||{t1:0,t2:0,t3:0,total:0} } } } }, { merge:true });
+      notify('Plan reiniciado ✓');
+    }catch(e){
+      console.error('reset plan error', e);
+      notify('Plan reiniciado (local)');
+    }
+  } else {
+    notify('Plan reiniciado (local)');
+  }
+}
+
 // No duplicar sabores: sobreescribe si existe
 function uniqueKeyForSabor(linea, base){ return base; }
 
@@ -401,7 +522,8 @@ async function guardarCarga(){
     if (cargaCtx.isNew){
       const typed = ($cSaborInput.value || '').trim();
       if (!typed){ alert('Ingresá un nombre de sabor'); return; }
-      saborKey = uniqueKeyForSabor(linea, typed);
+      const existing = findExistingKey(linea, typed);
+      saborKey = existing || uniqueKeyForSabor(linea, typed);
     }
 
     const formPlan = { t1:num($plan_t1.value), t2:num($plan_t2.value), t3:num($plan_t3.value) };
@@ -450,6 +572,7 @@ async function guardarCarga(){
   }
 }
 $btnGuardar?.addEventListener('click', guardarCarga);
+$btnResetPlan?.addEventListener('click', resetPlanActual);
 
 // -------- Firestore sync --------
 async function subscribeToDate(fechaISO){
@@ -498,7 +621,6 @@ for(const btn of document.querySelectorAll('.toggle button')){
     document.querySelectorAll('.toggle button').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     setTurno(btn.dataset.turno);
-    if ($modalCarga?.open) setExclusiveTurnoUI();
   });
 }
 const mTurnos = document.getElementById('m-turnos');
