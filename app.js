@@ -329,18 +329,33 @@ function setExclusiveTurnoUI(){
   if (!$modalCarga) return;
   const exclusive = (CURRENT_TURNO==='t1' || CURRENT_TURNO==='t2' || CURRENT_TURNO==='t3');
 
-  const t1Row = $plan_t1?.closest('.row3');
-  const t2Row = $plan_t2?.closest('.row3');
-  const t3Row = $plan_t3?.closest('.row3');
-  const totalRow = document.querySelector('#modal-carga .total_row')?.closest('.row3') || document.querySelector('#modal-carga .total_row');
+  // 1) Ocultar la fila de encabezados "Plan / Real" cuando es exclusivo
+  const headerRow = Array.from($modalCarga.querySelectorAll('.form_grid .row3')).find(r=>{
+    const hints = r.querySelectorAll('.hint');
+    return hints.length===2 &&
+      /plan/i.test(hints[0]?.textContent||'') &&
+      /real/i.test(hints[1]?.textContent||'');
+  });
+  if (headerRow) headerRow.style.display = exclusive ? 'none' : 'grid';
 
-  if (t1Row && t2Row && t3Row){
-    t1Row.style.display = (!exclusive || CURRENT_TURNO==='t1') ? 'grid' : 'none';
-    t2Row.style.display = (!exclusive || CURRENT_TURNO==='t2') ? 'grid' : 'none';
-    t3Row.style.display = (!exclusive || CURRENT_TURNO==='t3') ? 'grid' : 'none';
-  }
-  if (totalRow){ totalRow.style.display = exclusive ? 'none' : 'grid'; }
+  // 2) Mostrar solo la fila del turno activo (T1/T2/T3)
+  const filas = Array.from($modalCarga.querySelectorAll('.form_grid .row3'));
+  const filaT1 = filas.find(r=>/^\s*T1\s*$/i.test(r.querySelector('strong')?.textContent||''));
+  const filaT2 = filas.find(r=>/^\s*T2\s*$/i.test(r.querySelector('strong')?.textContent||''));
+  const filaT3 = filas.find(r=>/^\s*T3\s*$/i.test(r.querySelector('strong')?.textContent||''));
 
+  [filaT1,filaT2,filaT3].forEach(f=>{
+    if (!f) return;
+    const isThis = (f===filaT1 && CURRENT_TURNO==='t1') || (f===filaT2 && CURRENT_TURNO==='t2') || (f===filaT3 && CURRENT_TURNO==='t3');
+    f.style.display = (!exclusive || isThis) ? 'grid' : 'none';
+    if (isThis && exclusive) addSubLabels(f); else removeSubLabels(f);
+  });
+
+  // 3) Fila Total (oculta en exclusivo)
+  const totalRow = $modalCarga.querySelector('.total_row')?.closest('.row3');
+  if (totalRow) totalRow.style.display = exclusive ? 'none' : 'grid';
+
+  // 4) Deshabilitar inputs que no corresponden
   $plan_t1?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t1');
   $real_t1?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t1');
   $plan_t2?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t2');
@@ -348,11 +363,32 @@ function setExclusiveTurnoUI(){
   $plan_t3?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t3');
   $real_t3?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t3');
 
+  // 5) Etiqueta de cumplimiento
   const cumpRow = $cumpl_pct?.closest('.row3');
   const labelEl = cumpRow?.querySelector('strong');
   if (labelEl){
     labelEl.textContent = exclusive ? ('Cumplimiento ' + CURRENT_TURNO.toUpperCase()) : 'Cumplimiento';
   }
+
+  // Recalcular % con el turno activo
+  recalcCarga();
+}
+
+// ---- helpers para insertar/quitar rótulos sobre los inputs ----
+function addSubLabels(row){
+  const planCell = row.children?.[1];
+  const realCell = row.children?.[2];
+  if (planCell && !planCell.querySelector('.subhint')){
+    const l = document.createElement('div'); l.className='subhint'; l.textContent='Plan (cajas)';
+    planCell.prepend(l);
+  }
+  if (realCell && !realCell.querySelector('.subhint')){
+    const l = document.createElement('div'); l.className='subhint'; l.textContent='Real (cajas)';
+    realCell.prepend(l);
+  }
+}
+function removeSubLabels(row){
+  row?.querySelectorAll('.subhint')?.forEach(n=>n.remove());
 }
 
 // No duplicar sabores: sobreescribe si existe

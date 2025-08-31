@@ -178,3 +178,59 @@ header .wrap.bar .toggle button{
 header .wrap.bar .toggle button.active{
   background:#eef2ff; border-color:#3b82f6;
 }
+
+/* Modal de Carga: compacto y sin scroll */
+#modal-carga{
+  max-width: 640px;
+  width: min(640px, 96vw);
+}
+#modal-carga .modal-body{ overflow-x:hidden; max-width:100%; }
+
+/* Filas: [Etiqueta] [Plan] [Real] */
+#modal-carga .row3{
+  display:grid;
+  grid-template-columns: 72px 1fr 1fr;
+  gap:10px;
+  align-items:center;
+}
+
+/* Inputs más chicos */
+#modal-carga .row3 input[type="number"]{
+  width:100%;
+  min-width:0;
+  height:36px;
+  padding:6px 10px;
+  font-size:14px;
+  border-radius:10px;
+}
+
+/* Títulos más compactos */
+#modal-carga .row3 strong{ font-size:14px; }
+
+/* Fila Total (cuando no es exclusivo) */
+#modal-carga .row3.total_row{
+  grid-template-columns: 72px 1fr 1fr;
+}
+
+/* Mobile: mantiene 3 columnas pero compacta; si no entra, los inputs rompen a la línea de abajo */
+@media (max-width: 420px){
+  #modal-carga .row3{
+    grid-template-columns: 56px 1fr 1fr;
+    gap:8px;
+  }
+  #modal-carga .row3 input[type="number"]{ height:34px; font-size:14px; }
+}
+
+/* Botón Guardar a ancho completo en pantallas chicas */
+@media (max-width: 520px){
+  #modal-carga .actions{ display:flex; }
+  #modal-carga .actions .primary{ width:100%; }
+}
+
+/* Subtítulo pequeño sobre cada input del modal */
+#modal-carga .subhint{
+  display:block;
+  font-size:12px;
+  color:#94a3b8;         /* gris suave */
+  margin:0 0 4px 2px;
+}
