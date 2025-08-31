@@ -151,3 +151,30 @@ body{
   color: #fff;            /* mejor contraste sobre rojo */
 }
 
+/* Header más claro (solo para el contenedor wrap bar) */
+header .wrap.bar{
+  background: rgba(77, 129, 172, 0.92) !important; /* blanco translúcido */
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 8px 20px rgba(0,0,0,.08);
+}
+
+/* Texto y controles oscuros para buen contraste en el header claro */
+header .wrap.bar h1,
+header .wrap.bar .hint,
+header .wrap.bar label,
+header .wrap.bar span{
+  color: #0b1220 !important;
+}
+
+/* Inputs/toggles dentro del header en modo claro */
+header .wrap.bar input[type="date"]{
+  background:#ffffff; color:#0b1220; border:1px solid #e5e7eb; border-radius:10px; padding:6px 10px;
+}
+header .wrap.bar .toggle button{
+  background:#f8fafc; color:#0b1220; border:1px solid #e5e7eb;
+}
+header .wrap.bar .toggle button.active{
+  background:#eef2ff; border-color:#3b82f6;
+}
