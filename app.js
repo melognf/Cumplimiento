@@ -1,13 +1,5 @@
-// app.js — Dashboard Cumplimiento (v11)
-// - Botones T1/T2/T3 en cada tarjeta (cambian turno global)
-// - Modo Carga exclusivo por turno (T1/T2/T3) en el modal
-// - Plan se escribe una vez; botón "Reiniciar plan" para ponerlo en 0
-// - Evita duplicados de sabor (mismo nombre con variantes): sobreescribe
-// - Botón ✏️ en cada tarjeta cuando Modo Carga
-// - En Detalle de línea vacía aparece "➕ Nuevo sabor"
-
 import { app, db } from './firebase-config.js';
-import { doc, onSnapshot, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { doc, onSnapshot, setDoc, deleteField } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
 // -------- Config & estado --------
@@ -16,7 +8,7 @@ const ALL_LINEAS = ['LINEA001','LINEA002','LINEA003','LINEA005','LINEA006','LINE
 let CURRENT_TURNO = 'total';
 let unsubscribe = null;
 
-const stateDefaultFecha = (()=>{
+const stateDefaultFecha = (()=> {
   const now = new Date();
   const localISO = new Date(now.getTime() - now.getTimezoneOffset()*60000).toISOString().slice(0,10);
   return localISO;
@@ -50,16 +42,60 @@ const $real_total = document.getElementById('real_total');
 const $cumpl_pct = document.getElementById('cumpl_pct');
 const $btnGuardar = document.getElementById('btn-guardar');
 
-// Crear botón "Reiniciar plan" si no está en el HTML
-let $btnResetPlan = document.getElementById('btn-reset-plan');
-if (!$btnResetPlan && $btnGuardar && $btnGuardar.parentElement){
-  $btnResetPlan = document.createElement('button');
-  $btnResetPlan.id = 'btn-reset-plan';
-  $btnResetPlan.type = 'button';
-  $btnResetPlan.textContent = 'Reiniciar plan';
-  $btnResetPlan.className = 'danger';
-  $btnGuardar.parentElement.insertBefore($btnResetPlan, $btnGuardar);
+// Segundo input de sabor (lo inyectamos si no existe en el HTML)
+let $cSabor2Input = document.getElementById('c-sabor2-input');
+
+function ensureSecondSaborInput(){
+  // si ya existe, solo cacheamos y salimos
+  const existing = document.getElementById('c-sabor2-input');
+  if (existing){ $cSabor2Input = existing; return; }
+
+  // ancla: el contenedor del primer input de sabor, o .row2, o la grilla del form
+  const anchor =
+    $cSaborInput?.closest('div') ||
+    document.querySelector('#modal-carga .row2 > :nth-child(2)') ||
+    document.querySelector('#modal-carga .row2') ||
+    document.querySelector('#modal-carga .form_grid');
+
+  if (!anchor) return;
+
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <label class="hint">Sabor 2 (opcional)</label>
+    <input id="c-sabor2-input" type="text" placeholder="Otro sabor · formato" />
+  `;
+
+  // insertamos inmediatamente después del 1er sabor si se puede
+  if (anchor.parentNode && anchor.nextSibling) {
+    anchor.parentNode.insertBefore(wrap, anchor.nextSibling);
+  } else if (anchor.parentNode) {
+    anchor.parentNode.appendChild(wrap);
+  } else {
+    // fallback
+    document.querySelector('#modal-carga .form_grid')?.appendChild(wrap);
+  }
+  $cSabor2Input = document.getElementById('c-sabor2-input');
 }
+
+
+// --- UX: “0 inteligente” en inputs numéricos (no toca readonly/disabled)
+function attachSmartZero(el){
+  if(!el) return;
+  function clearIfZero(){
+    if (el.hasAttribute('readonly') || el.disabled) return;
+    if (el.value === '0') { el.value = ''; } else { try{ el.select(); }catch{} }
+  }
+  function restoreIfEmpty(){
+    if (el.value === '' || el.value == null) {
+      el.value = '0';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+  el.addEventListener('focus', clearIfZero);
+  el.addEventListener('blur', restoreIfEmpty);
+}
+// activar para Plan/Real
+[$plan_t1,$plan_t2,$plan_t3,$real_t1,$real_t2,$real_t3].forEach(attachSmartZero);
 
 // -------- Helpers --------
 const fmt = (n) => (n==null?'-':Number(n).toLocaleString('es-AR'));
@@ -89,10 +125,11 @@ function worstSkus(data, turno){
   return items.filter(x=>x.plan>0).sort((a,b)=>a.cumpl-b.cumpl).slice(0,8);
 }
 
-// Normalización de claves de sabor (evita duplicados por mayúsculas/acentos/espacios)
+// Normalización de claves (evita duplicados por mayúsculas/acentos/espacios)
 function normalizeKey(s){
   return (s||'')
     .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[·•\-]/g,' ')          // unificamos separadores comunes
     .trim().replace(/\s+/g,' ')
     .toUpperCase();
 }
@@ -157,7 +194,7 @@ function render(data){
     card.innerHTML = `
       <h3 style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
         <span>${linea}</span>
-        ${isCarga ? '<button class="primary" data-new="1" title="Nuevo sabor (modo carga)">✏️</button>' : ''}
+        ${isCarga ? '<button class="primary" data-new="1" title="Editar / Nuevo sabor">✏️</button>' : ''}
       </h3>
       <div class="badge ${badge}">Cumplimiento ${pct(c)}</div>
       <div class="pill pill-card" style="margin-top:6px;gap:6px;">
@@ -180,10 +217,24 @@ function render(data){
     btnDetalle.addEventListener('click',()=>openDetalle(linea));
     if (isEmpty && !isCarga) btnDetalle.setAttribute('disabled','true');
     const btnNew = card.querySelector('button[data-new]');
-    if (btnNew) btnNew.addEventListener('click',(e)=>{ e.stopPropagation(); openCarga(linea, null, true); });
-    card.querySelectorAll('.pill-card button').forEach(b=>{
-      b.addEventListener('click', (e)=>{ e.stopPropagation(); setTurno(b.dataset.turno); });
-    });
+if (btnNew) {
+  btnNew.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const sabores = Object.keys(state.lineas[linea] || []);
+    if (sabores.length === 0) {
+      // no hay datos: crear uno nuevo
+      openCarga(linea, null, true);
+    } else if (sabores.length === 1) {
+      // hay un solo sabor: editarlo directo
+      openCarga(linea, sabores[0], false);
+    } else {
+      // hay varios: mostrar el detalle para elegir cuál editar
+      openDetalle(linea);
+      notify('Elegí el sabor a editar en el detalle.');
+    }
+  });
+}
+
 
     $grid.appendChild(card);
   });
@@ -233,16 +284,10 @@ function renderDetalle(linea){
 
   if (keys.length===0){
     const tr = document.createElement('tr');
-    const showCarga = !!document.getElementById('toggleCarga')?.checked;
     tr.innerHTML = `<td colspan="7" class="td-center hint">
       Sin datos para esta línea en la fecha seleccionada.
-      ${showCarga ? '<div style="margin-top:8px"><button class="primary" id="btn-empty-new">➕ Nuevo sabor</button></div>' : ''}
     </td>`;
     $mBody.appendChild(tr);
-    if (showCarga){
-      const btnEmpty = document.getElementById('btn-empty-new');
-      btnEmpty?.addEventListener('click', ()=>openCarga(linea, null, true));
-    }
     applyMobileMode();
     return;
   }
@@ -315,21 +360,50 @@ let cargaCtx = { linea:null, sabor:null, isNew:false };
 
 function openCarga(linea, sabor, isNew){
   if (!$modalCarga) return;
+  ensureSecondSaborInput();
   const it = state.lineas[linea]?.[sabor] || { producto:'', plan:{t1:0,t2:0,t3:0,total:0}, real:{t1:0,t2:0,t3:0,total:0} };
   cargaCtx = { linea, sabor, isNew: !!isNew };
   $cLinea.textContent = linea;
 
   if (isNew){
+  // Primer sabor editable
+  if ($cSaborInput){
     $cSaborInput.style.display='block';
-    $cSaborRead.style.display='none';
     $cSaborInput.value = '';
-  } else {
-    $cSaborInput.style.display='none';
+    $cSaborInput.placeholder = '';
+    setTimeout(()=>{ try{ $cSaborInput.focus(); }catch{} }, 60);
+  }
+  // Chip de lectura oculto
+  if ($cSaborRead) $cSaborRead.style.display='none';
+
+  // >>> Mostrar y limpiar Sabor 2 <<<
+  if ($cSabor2Input){
+    $cSabor2Input.style.display='block';
+    $cSabor2Input.value = '';
+  }
+} else {
+  // Editando un sabor existente: ocultar inputs de texto, mostrar chip
+  if ($cSaborInput) $cSaborInput.style.display='none';
+  if ($cSaborRead){
+    $cSaborRead.textContent = sabor || '-';
     $cSaborRead.style.display='inline-flex';
-    $cSaborRead.textContent = sabor;
+  }
+  // En edición NO usamos Sabor 2
+  
+}
+
+  // Descripción opcional (si quedó un '.': ocultar)
+  if ($cProducto) {
+    const txt = (it?.producto ?? sabor ?? '').trim();
+    if (!txt || txt === '.') {
+      $cProducto.textContent = '';
+      $cProducto.style.display = 'none';
+    } else {
+      $cProducto.textContent = txt;
+      $cProducto.style.display = '';
+    }
   }
 
-  $cProducto.textContent = it.producto || (sabor || '');
   $plan_t1.value = it.plan?.t1 || 0;
   $plan_t2.value = it.plan?.t2 || 0;
   $plan_t3.value = it.plan?.t3 || 0;
@@ -427,101 +501,57 @@ function setExclusiveTurnoUI(){
   recalcCarga();
 }
 
-// Lock del plan + botón reiniciar
-// Lock del plan + botón reiniciar (usando readonly para que SIEMPRE se vea el valor)
+// Lock del plan (readonly para que SIEMPRE se vea el valor)
+// Lock del plan: NO bloquear en Modo Carga
 function setPlanLockUI(it){
   const exclusive = (CURRENT_TURNO==='t1' || CURRENT_TURNO==='t2' || CURRENT_TURNO==='t3');
+  const isCarga = !!document.getElementById('toggleCarga')?.checked;
 
-  // Quitar bloqueos previos en los 3 inputs de Plan
+  // 1) Siempre empezar desbloqueando
   [$plan_t1,$plan_t2,$plan_t3].forEach(el=>{
     if (!el) return;
     el.removeAttribute('readonly');
     el.classList.remove('is-locked');
-    if (!exclusive) el.removeAttribute('disabled'); // en Total no hace falta disabled
+    if (!exclusive) el.removeAttribute('disabled');
   });
 
-  // ¿Está cargado el plan?
-  const lock = exclusive
-    ? ((it?.plan?.[CURRENT_TURNO]||0) > 0)
-    : (((it?.plan?.t1||0)+(it?.plan?.t2||0)+(it?.plan?.t3||0)) > 0);
+  // 2) Si NO estamos en modo carga, podés mantener el lock
+  if (!isCarga){
+    const lock = exclusive
+      ? ((it?.plan?.[CURRENT_TURNO]||0) > 0)
+      : (((it?.plan?.t1||0)+(it?.plan?.t2||0)+(it?.plan?.t3||0)) > 0);
 
-  if (exclusive){
-    // En modo exclusivo: solo el turno activo se bloquea (readonly) si ya hay plan
-    const el = document.getElementById('plan_' + CURRENT_TURNO);
-    if (el && lock){
-      el.setAttribute('readonly','readonly');
-      el.classList.add('is-locked');
-    }
-    // los otros turnos pueden seguir disabled por setExclusiveTurnoUI (están ocultos)
-  } else {
-    // En Total: si hay plan en alguno, dejamos los 3 en readonly
     if (lock){
-      [$plan_t1,$plan_t2,$plan_t3].forEach(el=>{
-        if (!el) return;
-        el.setAttribute('readonly','readonly');
-        el.classList.add('is-locked');
-      });
+      if (exclusive){
+        const el = document.getElementById('plan_' + CURRENT_TURNO);
+        if (el){ el.setAttribute('readonly','readonly'); el.classList.add('is-locked'); }
+      } else {
+        [$plan_t1,$plan_t2,$plan_t3].forEach(el=>{
+          if (el){ el.setAttribute('readonly','readonly'); el.classList.add('is-locked'); }
+        });
+      }
     }
   }
 
-  // Botón Reiniciar: siempre visible; habilitado solo si hay plan
-  if ($btnResetPlan){
-    $btnResetPlan.style.display = '';
-    $btnResetPlan.disabled = !lock;
-  }
-  return lock;
-}
-
-
-async function resetPlanActual(){
-  const { linea, sabor, isNew } = cargaCtx;
-  if (isNew){
-    $plan_t1.value = 0; $plan_t2.value = 0; $plan_t3.value = 0;
-    setPlanLockUI({ plan:{t1:0,t2:0,t3:0} });
-    recalcCarga();
-    return;
-  }
-  const it = state.lineas[linea]?.[sabor];
-  if (!it){ return; }
-  const exclusive = (CURRENT_TURNO==='t1' || CURRENT_TURNO==='t2' || CURRENT_TURNO==='t3');
+  // 3) Asegurar que el turno actual esté habilitado para editar
   if (exclusive){
-    it.plan[CURRENT_TURNO] = 0;
-  } else {
-    it.plan = { t1:0, t2:0, t3:0, total:0 };
-  }
-  it.plan.total = (it.plan.t1||0)+(it.plan.t2||0)+(it.plan.t3||0);
-  $plan_t1.value = it.plan.t1||0;
-  $plan_t2.value = it.plan.t2||0;
-  $plan_t3.value = it.plan.t3||0;
-  setPlanLockUI(it);
-  recalcCarga();
-
-  const fechaISO = $fecha?.value || state.fecha;
-  LS.save(fechaISO, state);
-  if (FIREBASE_READY){
-    try{
-      const ref = doc(db, 'cumplimiento', fechaISO);
-      await setDoc(ref, { lineas: { [linea]: { [sabor]: { producto: it.producto||sabor, plan: it.plan, real: it.real||{t1:0,t2:0,t3:0,total:0} } } } }, { merge:true });
-      notify('Plan reiniciado ✓');
-    }catch(e){
-      console.error('reset plan error', e);
-      notify('Plan reiniciado (local)');
-    }
-  } else {
-    notify('Plan reiniciado (local)');
+    ({ t1:$plan_t1, t2:$plan_t2, t3:$plan_t3 }[CURRENT_TURNO])?.removeAttribute('disabled');
   }
 }
 
-// No duplicar sabores: sobreescribe si existe
+
+// No duplicar claves: sobreescribe si existe
 function uniqueKeyForSabor(linea, base){ return base; }
 
 async function guardarCarga(){
   try{
     const linea = cargaCtx.linea;
     let saborKey = cargaCtx.sabor;
+
     if (cargaCtx.isNew){
-      const typed = ($cSaborInput.value || '').trim();
-      if (!typed){ alert('Ingresá un nombre de sabor'); return; }
+      const typedRaw = ($cSaborInput?.value || '').trim();
+      const typed = typedRaw === '.' ? '' : typedRaw;
+      if (!typed){ alert('Ingresá “sabor y formato”'); return; }
       const existing = findExistingKey(linea, typed);
       saborKey = existing || uniqueKeyForSabor(linea, typed);
     }
@@ -542,10 +572,28 @@ async function guardarCarga(){
     plan.total = plan.t1 + plan.t2 + plan.t3;
     real.total = real.t1 + real.t2 + real.t3;
 
-    const producto = ($cProducto.textContent || saborKey);
+    const rawProd = ($cProducto?.textContent || '').trim();
+    const producto = rawProd && rawProd !== '.' ? rawProd : saborKey;
 
     if (!state.lineas[linea]) state.lineas[linea] = {};
     state.lineas[linea][saborKey] = { ...(state.lineas[linea][saborKey]||{}), producto, plan, real };
+
+    // --- NUEVO: chequear “Sabor 2” (opcional) ---
+    let secondPayload = {};
+    if (cargaCtx.isNew && $cSabor2Input){
+      const s2Raw = ($cSabor2Input.value || '').trim();
+      const s2 = (s2Raw === '.') ? '' : s2Raw;
+      if (s2 && normalizeKey(s2) !== normalizeKey(saborKey)){
+        const existing2 = findExistingKey(linea, s2);
+        const sabor2Key = existing2 || uniqueKeyForSabor(linea, s2);
+        const plan2 = { t1:0,t2:0,t3:0,total:0 };
+        const real2 = { t1:0,t2:0,t3:0,total:0 };
+        const prod2 = sabor2Key;
+
+        state.lineas[linea][sabor2Key] = { ...(state.lineas[linea][sabor2Key]||{}), producto: prod2, plan: plan2, real: real2 };
+        secondPayload = { [sabor2Key]: { producto: prod2, plan: plan2, real: real2 } };
+      }
+    }
 
     const fechaISO = $fecha?.value || state.fecha;
     LS.save(fechaISO, state);
@@ -553,7 +601,8 @@ async function guardarCarga(){
     if (FIREBASE_READY){
       try{
         const ref = doc(db, 'cumplimiento', fechaISO);
-        await setDoc(ref, { lineas: { [linea]: { [saborKey]: { producto, plan, real } } } }, { merge:true });
+        const payload = { lineas: { [linea]: { [saborKey]: { producto, plan, real }, ...secondPayload } } };
+        await setDoc(ref, payload, { merge:true });
         notify('Guardado en Firestore ✓');
       }catch(e){
         console.error('Error Firestore', e);
@@ -571,8 +620,8 @@ async function guardarCarga(){
     console.error('guardarCarga EXCEPTION', err);
   }
 }
+
 $btnGuardar?.addEventListener('click', guardarCarga);
-$btnResetPlan?.addEventListener('click', resetPlanActual);
 
 // -------- Firestore sync --------
 async function subscribeToDate(fechaISO){
@@ -616,23 +665,15 @@ async function subscribeToDate(fechaISO){
   onAuthStateChanged(auth, ()=>{ subscribeToDate($fecha?.value || state.fecha); });
 })();
 
-for(const btn of document.querySelectorAll('.toggle button')){
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.toggle button').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    setTurno(btn.dataset.turno);
-  });
-}
-const mTurnos = document.getElementById('m-turnos');
-if (mTurnos){
-  for(const btn of mTurnos.querySelectorAll('button')){
-    btn.addEventListener('click',()=>{
-      mTurnos.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      setTurno(btn.dataset.turno);
-    });
-  }
-}
+// Turnos (delegado): Header (.toggle), tarjetas (.pill-card) y modal (#m-turnos)
+document.addEventListener('click', (ev) => {
+  const btn = ev.target.closest('button[data-turno]');
+  if (!btn) return;
+  ev.preventDefault();
+  ev.stopPropagation();      // evita que algún click “deborde” a otros botones
+  setTurno(btn.dataset.turno);
+});
+
 document.getElementById('toggleEmpty')?.addEventListener('change',()=>render(state));
 document.getElementById('toggleCarga')?.addEventListener('change',(e)=>{
   const show = e.target.checked;
@@ -655,3 +696,197 @@ $fecha?.addEventListener('change', ()=>{
 });
 
 window.dashboard = { subscribeToDate };
+
+/* ===== UI extras integrados en app.js ===== */
+/* - Checkboxes → Botones (sin romper tus listeners)
+   - Botón 🗑 Borrar por fila (con borrado Firestore si hay config)
+   - Observadores para reinyectar en cada render del modal
+*/
+
+(function uiEnhancements(){
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+  const $  = (sel, root=document) => root.querySelector(sel);
+
+  /* ----------  A) Checkboxes -> Botones ---------- */
+  function initTogglesAsButtons(){
+    const headerWrap = document.querySelector('header .wrap.bar');
+    const chkSinPlan = document.getElementById('toggleEmpty');
+    const chkModo    = document.getElementById('toggleCarga');
+    if (!headerWrap || !chkSinPlan || !chkModo) return;
+
+    // Ocultar los <label> originales (si existen)
+    const oldLabels = [...headerWrap.querySelectorAll('label.switch')];
+    oldLabels.forEach(l => { l.style.display = 'none'; });
+
+    // Crear contenedor de botones si no existe
+    let btnbar = headerWrap.querySelector('.btnbar');
+    if (!btnbar){
+      btnbar = document.createElement('div');
+      btnbar.className = 'btnbar';
+      const ref = headerWrap.querySelector('.toggle');
+      headerWrap.insertBefore(btnbar, ref);
+    }
+
+    // Crear botones si no están
+    let btnSinPlan = document.getElementById('btnSinPlan');
+    let btnModo    = document.getElementById('btnModoCarga');
+
+    if (!btnSinPlan){
+      btnSinPlan = document.createElement('button');
+      btnSinPlan.id = 'btnSinPlan';
+      btnSinPlan.type = 'button';
+      btnSinPlan.className = 'btn-toggle';
+      btnSinPlan.textContent = 'Mostrar líneas sin plan';
+      btnbar.appendChild(btnSinPlan);
+    }
+    if (!btnModo){
+      btnModo = document.createElement('button');
+      btnModo.id = 'btnModoCarga';
+      btnModo.type = 'button';
+      btnModo.className = 'btn-toggle';
+      btnModo.textContent = 'Modo Carga';
+      btnbar.appendChild(btnModo);
+    }
+
+    // Sincronización botón ↔ checkbox
+    const syncBtn = (btn, checked)=>{
+      btn.classList.toggle('is-active', checked);
+      btn.setAttribute('aria-pressed', String(checked));
+    };
+    const toggleFromButton = (btn, chk)=>{
+      chk.checked = !chk.checked;
+      chk.dispatchEvent(new Event('change', { bubbles:true }));
+      syncBtn(btn, chk.checked);
+    };
+
+    // Eventos
+    btnSinPlan.addEventListener('click', ()=> toggleFromButton(btnSinPlan, chkSinPlan));
+    btnModo.addEventListener('click',    ()=> toggleFromButton(btnModo,    chkModo));
+    chkSinPlan.addEventListener('change',()=> syncBtn(btnSinPlan, chkSinPlan.checked));
+    chkModo.addEventListener('change',   ()=> syncBtn(btnModo,    chkModo.checked));
+
+    // Estado inicial
+    syncBtn(btnSinPlan, chkSinPlan.checked);
+    syncBtn(btnModo,    chkModo.checked);
+  }
+
+  /* ----------  B) Botón 🗑 Borrar por fila ---------- */
+  function lineaActualDesdeTitulo(){
+    const t = document.getElementById('m-title')?.textContent || '';
+    const m = t.match(/·\s*(.+)$/);
+    return m ? m[1].trim() : null;
+  }
+
+  async function deleteRowFromBackend({ fecha, linea, sabor }){
+    if (!FIREBASE_READY) return false;
+    try{
+      const ref = doc(db, 'cumplimiento', fecha);
+      await setDoc(ref, { lineas: { [linea]: { [sabor]: deleteField() } } }, { merge:true });
+      return true;
+    }catch(e){
+      console.error('Firestore delete error', e);
+      return false;
+    }
+  }
+
+  function deleteRowLocal({ fecha, linea, sabor }){
+    if (state?.lineas?.[linea]) {
+      delete state.lineas[linea][sabor];
+    }
+    LS.save(fecha, state);
+  }
+
+  async function handleDeleteRow(sabor){
+    const linea = lineaActualDesdeTitulo();
+    const fecha = document.getElementById('fecha')?.value || state.fecha;
+    if (!linea) { alert('No se pudo identificar la línea.'); return; }
+    if (!confirm(`¿Borrar los datos de "${sabor}" en ${linea}?`)) return;
+
+    const okRemote = await deleteRowFromBackend({ fecha, linea, sabor });
+    if (!okRemote) deleteRowLocal({ fecha, linea, sabor });
+
+    const tb = document.getElementById('m-body');
+    const tr  = [...tb.querySelectorAll('tr.desktop')].find(r => (r.querySelector('td')?.textContent || '').trim() === sabor);
+    const trM = [...tb.querySelectorAll('tr.mobile')].find(r => (r.querySelector('strong')?.textContent || '').trim() === sabor);
+    tr?.remove(); trM?.remove();
+
+    render(state);
+    const lineName = linea;
+    if (document.getElementById('modal-detalle')?.open && lineName) {
+      setTimeout(()=>{}, 0);
+    }
+  }
+
+  function injectDeleteButtons(){
+  const tb = document.getElementById('m-body'); 
+  if (!tb) return;
+
+  // ----- DESKTOP -----
+  [...tb.querySelectorAll('tr.desktop')].forEach(tr=>{
+    const tds = tr.querySelectorAll('td'); if (!tds.length) return;
+    const tdAcc = tds[tds.length - 1];
+    if (tdAcc.querySelector('.btn-del')) return; // ya está
+
+    const sabor = (tds[0]?.textContent || '').trim();
+
+    // grupo de acciones
+    const group = document.createElement('div');
+    group.className = 'btn-group';
+
+    const btnCargar = tdAcc.querySelector('button.primary, a');
+    if (btnCargar) group.appendChild(btnCargar);
+
+    const btnDel = document.createElement('button');
+    btnDel.type = 'button';
+    btnDel.className = 'btn-small danger btn-del';
+    btnDel.textContent = '🗑 Borrar';
+    btnDel.dataset.sabor = sabor;
+    group.appendChild(btnDel);
+
+    tdAcc.innerHTML = '';
+    tdAcc.appendChild(group);
+  });
+
+  // ----- MÓVIL -----
+  [...tb.querySelectorAll('tr.mobile')].forEach(tr=>{
+    const sabor = (tr.querySelector('.m-sabor strong')?.textContent || '').trim();
+    const actions = tr.querySelector('.m-actions');
+    if (!actions) return;
+    if (actions.querySelector('.btn-del')) return; // ya está
+
+    const btnDel = document.createElement('button');
+    btnDel.type = 'button';
+    btnDel.className = 'btn-small danger btn-del';
+    btnDel.textContent = '🗑 Borrar';
+    btnDel.dataset.sabor = sabor;
+
+    // que se vea prolijo en celular
+    btnDel.style.width = '100%';
+    btnDel.style.marginTop = '6px';
+
+    actions.appendChild(btnDel);
+  });
+}
+
+
+  document.addEventListener('click', (ev)=>{
+    const btn = ev.target.closest('.btn-del'); if (!btn) return;
+    handleDeleteRow(btn.dataset.sabor || '');
+  });
+
+  const mBody = document.getElementById('m-body');
+  if (mBody){
+    const obs = new MutationObserver(injectDeleteButtons);
+    obs.observe(mBody, { childList:true });
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', ()=>{
+      initTogglesAsButtons();
+      injectDeleteButtons();
+    });
+  } else {
+    initTogglesAsButtons();
+    injectDeleteButtons();
+  }
+})();

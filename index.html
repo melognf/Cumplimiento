@@ -14,14 +14,19 @@
       <div class="spacer"></div>
       <label class="hint">Fecha</label>
       <input id="fecha" type="date" />
-      <label class="switch hint" style="display:flex;align-items:center;gap:6px;">
-        <input id="toggleEmpty" type="checkbox" />
-        <span>Mostrar líneas sin plan</span>
-      </label>
-      <label class="switch hint" style="display:flex;align-items:center;gap:6px;">
-        <input id="toggleCarga" type="checkbox" />
-        <span>Modo Carga</span>
-      </label>
+      <div class="btnbar">
+  <button id="btnSinPlan" class="btn-toggle" type="button" aria-pressed="false">
+    Mostrar líneas sin plan
+  </button>
+  <button id="btnModoCarga" class="btn-toggle" type="button" aria-pressed="false">
+    Modo Carga
+  </button>
+</div>
+
+<!-- Mantener los checkboxes (ocultos) para no romper tu app -->
+<label class="vh"><input id="toggleEmpty" type="checkbox" /></label>
+<label class="vh"><input id="toggleCarga" type="checkbox" /></label>
+
       <div class="toggle" role="tablist" aria-label="Filtro de turno">
         <button class="active" data-turno="total">Total</button>
         <button data-turno="t1">T1 (Mañana)</button>
@@ -86,11 +91,11 @@
         <div class="row2">
           <div><label class="hint">Línea</label><div id="c-linea" class="badge b-yellow">-</div></div>
           <div><label class="hint">Sabor</label>
-            <input id="c-sabor-input" type="text" placeholder="Ej: HI‑C NARANJA 2.25Lx6" />
+            <input id="c-sabor-input" type="text"/>
             <div id="c-sabor-read" class="badge b-yellow" style="display:none">-</div>
           </div>
         </div>
-        <div><label class="hint">Descripción (opcional)</label><div id="c-producto" class="hint"></div></div>
+        <div><label class="hint"></label><div id="c-producto" class="hint"></div></div>
         <hr/>
         <div class="row3">
           <div></div><div class="hint">Plan (cajas)</div><div class="hint">Real (cajas)</div>
@@ -121,15 +126,15 @@
           <div></div>
         </div>
         <div class="actions">
-          <button type="button" id="btn-guardar" class="primary">Guardar</button>
-        </div>
+  <button type="button" id="btn-guardar" class="primary">Guardar</button>
+</div>
+
       </form>
     </div>
   </dialog>
 
-  <script type="module" src="app.js?v=13"></script>
+  <script type="module" src="app.js?v=17"></script>
 
-
-
+  
 </body>
 </html>

@@ -1,83 +1,151 @@
 :root{
-  --bg:#0b0f14;--panel:#121821;--muted:#7a8599;--text:#e8eef7;--green:#16a34a;--yellow:#f59e0b;--red:#ef4444;--blue:#3b82f6;--card:#0f1520;--chip:#192233;--chipActive:#24324a;--shadow:0 10px 30px rgba(0,0,0,.35)
+  /* ===== Paleta Dark Slate (recomendada) ===== */
+  --bg:#0e1320;
+  --panel:#121829;
+  --card:#0f172a;
+  --chip:#142036;
+  --chipActive:#1a2a46;
+
+  --text:#e6ecf6;
+  --muted:#98a6be;
+
+  --green:#18b566;
+  --yellow:#f5b301;
+  --red:#e3342f;
+  --blue:#4f8df3;
+
+  --border:#1d2740;
+  --border-2:#223151;
+  --track:#152036;
+
+  --shadow:0 10px 30px rgba(0,0,0,.30);
 }
+
+/* Base */
 *{box-sizing:border-box}
-body{margin:0;background:linear-gradient(180deg,#0a0f16,#0c121a 50%,#0b0f14);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
-header{position:sticky;top:0;z-index:10;background:rgba(11,15,20,.8);backdrop-filter:blur(10px);border-bottom:1px solid #1c2432}
+body{
+  margin:0;
+  background:linear-gradient(180deg,#0e1320,#0d1422 55%,#0b1220);
+  color:var(--text);
+  font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif
+}
+header{
+  position:sticky;top:0;z-index:10;
+  background:rgba(14,19,32,.75);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border)
+}
 .wrap{max-width:1200px;margin:auto;padding:12px 16px}
 .bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 h1{font-size:18px;margin:0 12px 0 0;letter-spacing:.3px;font-weight:600}
 .spacer{flex:1}
-input[type="date"]{background:var(--panel);color:var(--text);border:1px solid #1f2a3a;border-radius:10px;padding:8px 12px}
+input[type="date"]{
+  background:var(--panel);color:var(--text);
+  border:1px solid var(--border-2);border-radius:10px;padding:8px 12px
+}
 .toggle{display:flex;gap:6px;padding:6px;background:var(--chip);border-radius:999px}
-.toggle button{appearance:none;border:0;background:transparent;color:var(--muted);padding:8px 12px;border-radius:999px;font-weight:600;cursor:pointer}
+.toggle button{
+  appearance:none;border:0;background:transparent;color:var(--muted);
+  padding:8px 12px;border-radius:999px;font-weight:600;cursor:pointer
+}
 .toggle button.active{background:var(--chipActive);color:var(--text)}
 
 main{max-width:1200px;margin:20px auto;padding:0 16px;display:grid;grid-template-columns:2fr 1fr;gap:16px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
-.card{background:var(--card);border:1px solid #1a2433;border-radius:16px;box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:10px}
+.card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;box-shadow:var(--shadow);padding:16px;
+  display:flex;flex-direction:column;gap:10px
+}
 .card h3{margin:0;font-size:16px;letter-spacing:.3px}
 .kpis{display:flex;gap:12px;flex-wrap:wrap}
-.kpi{background:var(--panel);border:1px solid #1e2a3a;border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;min-width:110px}
+.kpi{
+  background:var(--panel);border:1px solid var(--border-2);
+  border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;min-width:110px
+}
 .kpi .label{color:var(--muted);font-size:12px}
 .kpi .val{font-size:18px;font-weight:700}
 
+/* Badges estado */
 .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;font-weight:700;font-size:12px;width:max-content}
-.b-green{background:rgba(22,163,74,.15);color:#72e1a2;border:1px solid rgba(22,163,74,.35)}
-.b-yellow{background:rgba(245,158,11,.15);color:#ffd38a;border:1px solid rgba(245,158,11,.35)}
-.b-red{background:rgba(239,68,68,.15);color:#ff9ca0;border:1px solid rgba(239,68,68,.35)}
+.b-green{background:color-mix(in srgb, var(--green) 18%, transparent);color:#7ee3b2;border:1px solid color-mix(in srgb, var(--green) 40%, transparent)}
+.b-yellow{background:color-mix(in srgb, var(--yellow) 18%, transparent);color:#ffe29a;border:1px solid color-mix(in srgb, var(--yellow) 40%, transparent)}
+.b-red{background:color-mix(in srgb, var(--red) 18%, transparent);color:#ffadb1;border:1px solid color-mix(in srgb, var(--red) 40%, transparent)}
 
-.progress{height:10px;background:#1b2433;border-radius:999px;overflow:hidden;border:1px solid #263349}
+/* Progreso */
+.progress{height:10px;background:var(--track);border-radius:999px;overflow:hidden;border:1px solid var(--border-2)}
 .progress>span{display:block;height:100%}
 
-aside{background:var(--panel);border:1px solid #1f2a3a;border-radius:16px;padding:16px;box-shadow:var(--shadow);position:relative}
+/* Aside */
+aside{
+  background:var(--panel);border:1px solid var(--border);
+  border-radius:16px;padding:16px;box-shadow:var(--shadow);position:relative
+}
 aside h2{margin:0 0 12px 0;font-size:16px}
 
+/* Lista */
 .list{display:flex;flex-direction:column;gap:10px}
-.row{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;background:#0f1520;border:1px solid #1a2433;border-radius:12px;padding:10px}
+.row{
+  display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:10px
+}
 .row .title{font-weight:600}
 .row .pct{font-weight:800}
 
 /* Modal */
-dialog{border:1px solid #1f2a3a;border-radius:16px;background:#0e1520;color:var(--text);max-width:980px;width:98%;padding:0;box-shadow:var(--shadow)}
+dialog{
+  border:1px solid var(--border);border-radius:16px;background:#0e1626;
+  color:var(--text);max-width:980px;width:98%;padding:0;box-shadow:var(--shadow)
+}
 dialog::backdrop{background:rgba(0,0,0,.55)}
-.modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #1f2a3a}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border)}
 .modal-body{padding:16px}
-.close{cursor:pointer;border:0;background:#192233;color:var(--text);border-radius:10px;padding:8px 10px}
+.close{cursor:pointer;border:0;background:var(--chip);color:var(--text);border-radius:10px;padding:8px 10px}
 .actions-inline{display:flex;align-items:center;gap:8px}
 
 /* Tabla */
 table{width:100%;border-collapse:collapse}
-th,td{padding:10px;border-bottom:1px solid #1b2536}
+th,td{padding:10px;border-bottom:1px solid var(--border)}
 th{color:var(--muted);text-align:left;font-weight:600}
 .td-center{text-align:center}
 .num{text-align:right;font-variant-numeric:tabular-nums}
 
 /* Pills */
-.pill{display:inline-flex;gap:6px;background:#141b28;border:1px solid #1f2a3a;border-radius:999px;padding:6px}
-.pill button{background:transparent;border:0;color:var(--muted);padding:6px 10px;border-radius:999px;cursor:pointer;font-weight:700}
-.pill button.active{background:#24324a;color:var(--text)}
+.pill{display:inline-flex;gap:6px;background:#121a2b;border:1px solid var(--border-2);border-radius:999px;padding:6px}
+.pill button{
+  background:transparent;border:0;color:var(--muted);
+  padding:6px 10px;border-radius:999px;cursor:pointer;font-weight:700
+}
+.pill button.active{background:#1a2a46;color:var(--text)}
 
+/* Hint/Foot */
 .hint{color:var(--muted);font-size:12px}
 footer{opacity:.7;text-align:center;padding:22px 0 40px}
 
-/* Líneas sin plan: tarjeta atenuada */
-.card.muted{opacity:.6;filter:grayscale(.1)}
-.card.muted button{opacity:.6;pointer-events:none}
+/* Líneas sin plan */
+.card.muted{opacity:.65;filter:grayscale(.05)}
+.card.muted button{opacity:.75;pointer-events:none}
 
-/* Form modal carga */
+/* Modal carga */
 .form_grid{display:flex;flex-direction:column;gap:10px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;align-items:center}
-.total_row{border-top:1px dashed #293449;padding-top:8px;margin-top:4px}
+.total_row{border-top:1px dashed var(--border-2);padding-top:8px;margin-top:4px}
 .actions{display:flex;justify-content:flex-end;margin-top:8px}
-button.primary{background:#1f3458;border:1px solid #28446f;color:var(--text);border-radius:10px;padding:10px 14px;cursor:pointer}
-button.primary:hover{filter:brightness(1.05)}
+button.primary{
+  background:#1b2d52;border:1px solid #2a4471;color:var(--text);
+  border-radius:10px;padding:10px 14px;cursor:pointer
+}
+button.primary:hover{filter:brightness(1.06)}
 
 /* Banner */
-.banner{position:sticky;top:0;z-index:20;background:#1a2a46;color:#cfe2ff;border-bottom:1px solid #28446f;padding:8px 16px;font-size:13px}
+.banner{
+  position:sticky;top:0;z-index:20;background:#172749;color:#cfe2ff;
+  border-bottom:1px solid #25406f;padding:8px 16px;font-size:13px
+}
 
-/* === Responsive: tabla del modal apilada en móviles (sin scroll) === */
+/* Responsive tabla modal */
 .modal-body table tr.mobile{ display:none; }
 @media (max-width: 600px){
   .modal-body table thead{ display:none; }
@@ -92,132 +160,54 @@ button.primary:hover{filter:brightness(1.05)}
   .m-sabor{ font-weight:700; }
 }
 
-/* Ocultar Top desvíos y usar una sola columna cuando el body tenga .sin-top */
+/* Ocultar Top desvíos / 1 columna si .sin-top */
 .sin-top aside { display: none; }
 .sin-top main { grid-template-columns: 1fr; }
 
-
-/* === Per-card turno buttons: separados y centrados === */
+/* Botonera por tarjeta (turnos) */
 .pill.pill-card{
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  border-radius: 0 !important;
-  width: 100%;
-  margin: 6px 0 10px;
+  display:flex;justify-content:center;align-items:center;gap:10px;
+  background:transparent!important;border:none!important;box-shadow:none!important;
+  padding:0!important;border-radius:0!important;width:100%;margin:6px 0 10px;
 }
-
 .pill-card button{
-  background: #162032;
-  border: 1px solid #243248;
-  border-radius: 999px;
-  padding: 6px 14px;
-  min-width: 56px;
-  font-weight: 600;
-  letter-spacing: .3px;
-  transition: transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
+  background:#162032;border:1px solid #243248;border-radius:999px;
+  padding:6px 14px;min-width:56px;font-weight:600;letter-spacing:.3px;
+  transition:transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
 }
-
-.pill-card button:hover{
-  transform: translateY(-1px);
-  box-shadow: 0 0 0 1px #243248 inset;
-}
-
+.pill-card button:hover{transform:translateY(-1px);box-shadow:0 0 0 1px #243248 inset;}
 .pill-card button.active{
-  background: #0F1A2A;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 1px rgba(59,130,246,.35) inset;
+  background:#0f1a2a;border-color:var(--blue);
+  box-shadow:0 0 0 1px color-mix(in srgb, var(--blue) 35%, transparent) inset;
 }
 
-/* En pantallas chicas, que puedan pasar a dos filas pero centrados */
+/* Responsive botonerita */
 @media (max-width: 420px){
-  .pill.pill-card{
-    flex-wrap: wrap;
-    row-gap: 8px;
-  }
+  .pill.pill-card{ flex-wrap:wrap; row-gap:8px; }
 }
 
-/* Fondo rojo */
-:root{
-  --bg: #FE001A;          /* por si usás variables */
-}
-body{
-  background: #FE001A !important;
-  color: #fff;            /* mejor contraste sobre rojo */
-}
+/* ===== NOTA: Se elimina el bloque de “Fondo rojo” que forzaba body y header claros ===== */
 
-/* Header más claro (solo para el contenedor wrap bar) */
-header .wrap.bar{
-  background: rgba(77, 129, 172, 0.92) !important; /* blanco translúcido */
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 8px 20px rgba(0,0,0,.08);
-}
-
-/* Texto y controles oscuros para buen contraste en el header claro */
-header .wrap.bar h1,
-header .wrap.bar .hint,
-header .wrap.bar label,
-header .wrap.bar span{
-  color: #0b1220 !important;
-}
-
-/* Inputs/toggles dentro del header en modo claro */
-header .wrap.bar input[type="date"]{
-  background:#ffffff; color:#0b1220; border:1px solid #e5e7eb; border-radius:10px; padding:6px 10px;
-}
-header .wrap.bar .toggle button{
-  background:#f8fafc; color:#0b1220; border:1px solid #e5e7eb;
-}
-header .wrap.bar .toggle button.active{
-  background:#eef2ff; border-color:#3b82f6;
-}
-
-/* Modal de Carga: compacto y sin scroll */
-#modal-carga{
-  max-width: 640px;
-  width: min(640px, 96vw);
-}
+/* Modal de Carga: compacto */
+#modal-carga{ max-width:640px; width:min(640px,96vw); }
 #modal-carga .modal-body{ overflow-x:hidden; max-width:100%; }
 
 /* Filas: [Etiqueta] [Plan] [Real] */
-#modal-carga .row3{
-  display:grid;
-  grid-template-columns: 72px 1fr 1fr;
-  gap:10px;
-  align-items:center;
-}
+#modal-carga .row3{ display:grid; grid-template-columns:72px 1fr 1fr; gap:10px; align-items:center; }
 
 /* Inputs más chicos */
 #modal-carga .row3 input[type="number"]{
-  width:100%;
-  min-width:0;
-  height:36px;
-  padding:6px 10px;
-  font-size:14px;
-  border-radius:10px;
+  width:100%; min-width:0; height:36px; padding:6px 10px; font-size:14px; border-radius:10px;
+  background:#0e1728; color:var(--text); border:1px solid var(--border-2);
 }
-
-/* Títulos más compactos */
 #modal-carga .row3 strong{ font-size:14px; }
 
 /* Fila Total (cuando no es exclusivo) */
-#modal-carga .row3.total_row{
-  grid-template-columns: 72px 1fr 1fr;
-}
+#modal-carga .row3.total_row{ grid-template-columns:72px 1fr 1fr; }
 
-/* Mobile: mantiene 3 columnas pero compacta; si no entra, los inputs rompen a la línea de abajo */
+/* Mobile modal */
 @media (max-width: 420px){
-  #modal-carga .row3{
-    grid-template-columns: 56px 1fr 1fr;
-    gap:8px;
-  }
+  #modal-carga .row3{ grid-template-columns:56px 1fr 1fr; gap:8px; }
   #modal-carga .row3 input[type="number"]{ height:34px; font-size:14px; }
 }
 
@@ -227,32 +217,79 @@ header .wrap.bar .toggle button.active{
   #modal-carga .actions .primary{ width:100%; }
 }
 
-/* Subtítulo pequeño sobre cada input del modal */
-#modal-carga .subhint{
-  display:block;
-  font-size:12px;
-  color:#94a3b8;         /* gris suave */
-  margin:0 0 4px 2px;
-}
+/* Subhint inputs */
+#modal-carga .subhint{ display:block; font-size:12px; color:#a8b3ca; margin:0 0 4px 2px; }
 
+/* Botones estado */
 #btn-reset-plan.danger{
-  background:#fee2e2; color:#991b1b; border:1px solid #fecaca;
+  background:#2a0f12; color:#ffb3b6; border:1px solid #3a1216;
   margin-right:8px; border-radius:10px; padding:8px 12px;
 }
-#btn-reset-plan.danger:hover{ filter:brightness(0.98); }
+#btn-reset-plan.danger:hover{ filter:brightness(1.02); }
 
-/* Inputs de Plan bloqueados pero legibles */
+/* Inputs Plan bloqueados legibles */
 #modal-carga input[readonly]{
-  background: #f1f5f9;   /* fondo claro */
-  color: #0b1220;        /* texto oscuro */
-  opacity: 1;            /* no los apagues */
-  cursor: default;
+  background:#0f192b; color:#e8eef7; opacity:1; cursor:default;
+  box-shadow: inset 0 0 0 1px #1e2943;
 }
-#modal-carga input.is-locked{
-  box-shadow: inset 0 0 0 1px #e5e7eb;
+#modal-carga input.is-locked{ box-shadow: inset 0 0 0 1px #223151; }
+
+/* Disabled */
+#modal-carga input:disabled{ opacity:.65; }
+
+/* Variantes danger */
+button.danger{
+  background:#2a0f12; color:#ffb3b6; border:1px solid #3a1216;
+  border-radius:10px; padding:8px 12px;
+}
+button.danger.outline{
+  background:transparent; color:#ff8d92; border:1px solid #3a1216;
+}
+button.danger:hover{ filter:brightness(1.02); }
+
+/* Oculta visualmente pero mantiene accesible */
+.vh {
+  position:absolute !important;
+  width:1px; height:1px;
+  margin:-1px; padding:0; border:0;
+  clip:rect(0 0 0 0); clip-path: inset(50%);
+  overflow:hidden; white-space:nowrap;
 }
 
-/* (por si quedó algún disabled de otros estilos) */
-#modal-carga input:disabled{
-  opacity: .6;           /* si querés que se “note” apagado */
+/* Contenedor de botones */
+.btnbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+/* Botón toggle (usa tu paleta) */
+.btn-toggle{
+  background:#162032;
+  color:var(--text);
+  border:1px solid #243248;
+  border-radius:999px;
+  padding:8px 14px;
+  font-weight:700;
+  letter-spacing:.2px;
+  cursor:pointer;
+  transition:transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease, color .12s ease;
+}
+.btn-toggle:hover{ transform:translateY(-1px); box-shadow:0 0 0 1px #243248 inset; }
+
+/* Estado activo */
+.btn-toggle.is-active{
+  background:#0f1a2a;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--blue) 35%, transparent) inset;
+}
+
+/* Ocultar SIEMPRE los checkboxes de la barra */
+#toggleEmpty, #toggleCarga { display: none !important; }
+
+#modal-carga .hint:empty { display: none; }
+
+#c-producto{ display:none !important; }
+
+/* Modal Carga: espacio entre 'Línea' y el chip */
+#modal-carga .row2 > div:first-child{
+  display: flex;
+  align-items: center;
+  gap: 8px;          /* ← separa label y badge */
 }
