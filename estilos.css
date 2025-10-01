@@ -293,3 +293,7 @@ button.danger:hover{ filter:brightness(1.02); }
   align-items: center;
   gap: 8px;          /* ← separa label y badge */
 }
+
+.card.tone-green { border:1px solid #16a34a; background:rgba(22,163,74,.08); }
+.card.tone-yellow{ border:1px solid #f59e0b; background:rgba(245,158,11,.10); }
+.card.tone-red   { border:1px solid #ef4444; background:rgba(239,68,68,.10); }

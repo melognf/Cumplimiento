@@ -186,10 +186,15 @@ function render(data){
     const c = cumplimiento(p,r);
     const badge = isFinite(c) ? colorBy(c) : 'b-yellow';
 
+    // NUEVO: clase de “tono” para la tarjeta según cumplimiento del turno activo
+    const toneClass = isFinite(c) ? badge.replace('b-','tone-') : '';
+
     const card = document.createElement('div');
     const isEmpty = ((p||0)===0 && (r||0)===0);
     const isCarga = document.getElementById('toggleCarga')?.checked;
-    card.className='card' + (isEmpty && !isCarga ? ' muted' : '');
+
+    // antes: card.className='card' + (isEmpty && !isCarga ? ' muted' : '');
+    card.className = ['card', (isEmpty && !isCarga ? 'muted' : ''), toneClass].filter(Boolean).join(' ');
 
     card.innerHTML = `
       <h3 style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
@@ -213,28 +218,26 @@ function render(data){
       </div>
       <button aria-label="Ver detalle" style="align-self:flex-start;margin-top:6px;border:1px solid #243248;background:#162032;color:var(--text);padding:8px 10px;border-radius:10px;cursor:pointer">Ver detalle</button>
     `;
+
     const btnDetalle = card.querySelector('button[aria-label="Ver detalle"]');
     btnDetalle.addEventListener('click',()=>openDetalle(linea));
     if (isEmpty && !isCarga) btnDetalle.setAttribute('disabled','true');
-    const btnNew = card.querySelector('button[data-new]');
-if (btnNew) {
-  btnNew.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const sabores = Object.keys(state.lineas[linea] || []);
-    if (sabores.length === 0) {
-      // no hay datos: crear uno nuevo
-      openCarga(linea, null, true);
-    } else if (sabores.length === 1) {
-      // hay un solo sabor: editarlo directo
-      openCarga(linea, sabores[0], false);
-    } else {
-      // hay varios: mostrar el detalle para elegir cuál editar
-      openDetalle(linea);
-      notify('Elegí el sabor a editar en el detalle.');
-    }
-  });
-}
 
+    const btnNew = card.querySelector('button[data-new]');
+    if (btnNew) {
+      btnNew.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const sabores = Object.keys(state.lineas[linea] || []);
+        if (sabores.length === 0) {
+          openCarga(linea, null, true);
+        } else if (sabores.length === 1) {
+          openCarga(linea, sabores[0], false);
+        } else {
+          openDetalle(linea);
+          notify('Elegí el sabor a editar en el detalle.');
+        }
+      });
+    }
 
     $grid.appendChild(card);
   });
@@ -253,6 +256,7 @@ if (btnNew) {
     }
   }
 }
+
 
 // -------- Detalle --------
 function openDetalle(linea){
