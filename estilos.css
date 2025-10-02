@@ -297,3 +297,47 @@ button.danger:hover{ filter:brightness(1.02); }
 .card.tone-green { border:1px solid #16a34a; background:rgba(22,163,74,.08); }
 .card.tone-yellow{ border:1px solid #f59e0b; background:rgba(245,158,11,.10); }
 .card.tone-red   { border:1px solid #ef4444; background:rgba(239,68,68,.10); }
+
+/* Tonos por cumplimiento */
+.card.tone-ok   { background: rgba(16, 185, 129, 0.10); border: 1px solid rgba(16,185,129,.25); }
+.card.tone-warn { background: rgba(245, 158, 11, 0.10); border: 1px solid rgba(245,158,11,.25); }
+.card.tone-bad  { background: rgba(239, 68, 68, 0.10);  border: 1px solid rgba(239,68,68,.25); }
+.card.tone-unk  { background: rgba(148, 163, 184, 0.10); border: 1px solid rgba(148,163,184,.25); }
+
+/* Botones compactos reutilizables */
+.btn-xs { padding: 6px 10px !important; font-size: 12px !important; border-radius: 10px !important; }
+
+/* Modal carga – mobile first */
+#modal-carga .form_grid .row3 { gap: 8px; }
+#modal-carga input[type="text"], 
+#modal-carga input[type="number"] { height: 38px; }
+
+/* Layouts móviles */
+@media (max-width: 600px){
+  .card{ padding: 12px; border-radius: 16px; }
+  .card h3{ font-size: 14px; }
+  .badge{ font-size: 11px; padding: 4px 8px; }
+  .pill button{ padding: 4px 8px; font-size: 12px; border-radius: 10px; }
+  .kpis .kpi .label{ font-size: 11px; }
+  .kpis .kpi .val{ font-size: 16px; }
+
+  /* Progreso un poco más fino */
+  .progress{ height: 6px; border-radius: 6px; }
+
+  /* Modal */
+  dialog#modal-carga{ width: 96vw; max-width: 520px; }
+  #modal-carga .form_grid{ display:grid; grid-template-columns: 1fr; gap: 12px; }
+  #modal-carga .row2 > div{ grid-column: 1 / -1 !important; } /* Sabor 2 debajo del 1 */
+  #modal-carga .hint{ font-size: 12px; opacity:.8; }
+  #modal-carga .primary{ padding: 10px 12px; font-size: 14px; }
+  #modal-carga .btn-xs{ padding: 6px 10px; font-size: 12px; }
+
+  /* Tabla detalle compacta en móvil */
+  .m-item{ display:grid; gap:10px; }
+  .m-line1{ display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; }
+  .m-plr{ display:grid; grid-auto-flow:column; gap:8px; font-size:12px; }
+  .m-actions{ display:flex; justify-content:flex-end; }
+}
+
+/* Acción borrar también en móvil (más chica) */
+.btn-group .btn-del{ padding: 6px 10px; font-size: 12px; border-radius: 10px; }

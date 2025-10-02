@@ -46,37 +46,19 @@ const $btnGuardar = document.getElementById('btn-guardar');
 let $cSabor2Input = document.getElementById('c-sabor2-input');
 
 function ensureSecondSaborInput(){
-  // si ya existe, solo cacheamos y salimos
-  const existing = document.getElementById('c-sabor2-input');
-  if (existing){ $cSabor2Input = existing; return; }
-
-  // ancla: el contenedor del primer input de sabor, o .row2, o la grilla del form
-  const anchor =
-    $cSaborInput?.closest('div') ||
-    document.querySelector('#modal-carga .row2 > :nth-child(2)') ||
-    document.querySelector('#modal-carga .row2') ||
-    document.querySelector('#modal-carga .form_grid');
-
-  if (!anchor) return;
-
-  const wrap = document.createElement('div');
-  wrap.innerHTML = `
-    <label class="hint">Sabor 2 (opcional)</label>
-    <input id="c-sabor2-input" type="text" placeholder="Otro sabor · formato" />
-  `;
-
-  // insertamos inmediatamente después del 1er sabor si se puede
-  if (anchor.parentNode && anchor.nextSibling) {
-    anchor.parentNode.insertBefore(wrap, anchor.nextSibling);
-  } else if (anchor.parentNode) {
-    anchor.parentNode.appendChild(wrap);
-  } else {
-    // fallback
-    document.querySelector('#modal-carga .form_grid')?.appendChild(wrap);
+  const row2 = document.querySelector('#modal-carga .row2');
+  if (!row2) return;
+  if (!document.getElementById('c-sabor2-input')){
+    const wrap = document.createElement('div');
+    wrap.style.gridColumn = '2 / span 1';
+    wrap.innerHTML = `
+      <label class="hint">Sabor 2 (opcional)</label>
+      <input id="c-sabor2-input" type="text" placeholder="Otro sabor · formato" />
+    `;
+    row2.appendChild(wrap);
   }
   $cSabor2Input = document.getElementById('c-sabor2-input');
 }
-
 
 // --- UX: “0 inteligente” en inputs numéricos (no toca readonly/disabled)
 function attachSmartZero(el){
@@ -184,17 +166,15 @@ function render(data){
     const p = CURRENT_TURNO==='total' ? agg.plan.total : agg.plan[CURRENT_TURNO];
     const r = CURRENT_TURNO==='total' ? agg.real.total : agg.real[CURRENT_TURNO];
     const c = cumplimiento(p,r);
-    const badge = isFinite(c) ? colorBy(c) : 'b-yellow';
+    const tone = isFinite(c) ? (c>=100? 'tone-ok' : c>=80? 'tone-warn' : 'tone-bad') : 'tone-unk';
 
     // NUEVO: clase de “tono” para la tarjeta según cumplimiento del turno activo
     const toneClass = isFinite(c) ? badge.replace('b-','tone-') : '';
 
     const card = document.createElement('div');
-    const isEmpty = ((p||0)===0 && (r||0)===0);
-    const isCarga = document.getElementById('toggleCarga')?.checked;
-
-    // antes: card.className='card' + (isEmpty && !isCarga ? ' muted' : '');
-    card.className = ['card', (isEmpty && !isCarga ? 'muted' : ''), toneClass].filter(Boolean).join(' ');
+const isEmpty = ((p||0)===0 && (r||0)===0);
+const isCarga = document.getElementById('toggleCarga')?.checked;
+card.className = `card ${tone}` + (isEmpty && !isCarga ? ' muted' : '');
 
     card.innerHTML = `
       <h3 style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
@@ -288,25 +268,36 @@ function renderDetalle(linea){
 
   if (keys.length===0){
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td colspan="7" class="td-center hint">
-      Sin datos para esta línea en la fecha seleccionada.
-    </td>`;
+    tr.innerHTML = `<td colspan="7" class="td-center hint">Sin datos para esta línea en la fecha seleccionada.</td>`;
     $mBody.appendChild(tr);
     applyMobileMode();
     return;
   }
+
+  // ¿Hay ALGÚN item con datos en el turno? (para poder ocultar los "0/0")
+  const hasDataInTurno = keys.some(k=>{
+    const it = productos[k]; 
+    const p = CURRENT_TURNO==='total' ? (it.plan?.total||0) : (it.plan?.[CURRENT_TURNO]||0);
+    const r = CURRENT_TURNO==='total' ? (it.real?.total||0) : (it.real?.[CURRENT_TURNO]||0);
+    return (p>0 || r>0);
+  });
+
   for(const sabor of keys){
     const it = productos[sabor];
     const p = CURRENT_TURNO==='total'? it.plan?.total||0: it.plan?.[CURRENT_TURNO]||0;
     const r = CURRENT_TURNO==='total'? it.real?.total||0: it.real?.[CURRENT_TURNO]||0;
     const l = CURRENT_TURNO==='total'? ((it.litros?.t1||0) + (it.litros?.t2||0) + (it.litros?.t3||0)) : (it.litros?.[CURRENT_TURNO]||0);
     const c = cumplimiento(p,r);
+    const label = it.producto || sabor;
+
+    // si hay por lo menos un registro con datos, no muestro los 0/0
+    if (hasDataInTurno && p===0 && r===0) continue;
 
     // Desktop row
     const tr = document.createElement('tr');
     tr.className = 'desktop';
     tr.innerHTML = `
-      <td>${sabor}</td>
+      <td>${label}</td>
       <td class="num">${fmt(p)}</td>
       <td class="num">${fmt(r)}</td>
       <td class="num">${pct(c)}</td>
@@ -315,97 +306,80 @@ function renderDetalle(linea){
         ${(p>0 && r===0) ? '<div class="hint">⚠️ Hubo plan y no se produjo en este turno</div>' : ''}
       </td>
       <td class="num">${fmt(l)}</td>
-      <td class="td-center">${ document.getElementById('toggleCarga')?.checked ? `<button class="primary" data-linea="${linea}" data-sabor="${sabor}">✏️ Cargar</button>` : ''}</td>
+      <td class="td-center">${ document.getElementById('toggleCarga')?.checked ? `<button class="primary btn-xs" data-linea="${linea}" data-sabor="${sabor}">✏️ Cargar</button>` : ''}</td>
     `;
-    if (document.getElementById('toggleCarga')?.checked){
-      const btn = tr.querySelector('button.primary');
-      btn?.addEventListener('click',()=>openCarga(linea, sabor, false));
-    }
+    tr.querySelector('button.primary')?.addEventListener('click',()=>openCarga(linea, sabor, false));
     $mBody.appendChild(tr);
 
-    // Mobile stacked row
+    // Mobile row (una sola barra)
     const trM = document.createElement('tr');
     trM.className = 'mobile';
     trM.style.display = 'none';
     trM.innerHTML = `
       <td colspan="7">
-        <div class="m-item" style="display:grid;gap:10px;">
-          <div class="m-line1" style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;">
-            <div class="m-sabor"><strong>${sabor}</strong></div>
-            <div class="m-plr" style="display:grid;grid-auto-flow:column;gap:12px;font-size:12px;">
+        <div class="m-item">
+          <div class="m-line1">
+            <div class="m-sabor"><strong>${label}</strong></div>
+            <div class="m-plr">
               <span>Plan: <strong>${fmt(p)}</strong></span>
               <span>Real: <strong>${fmt(r)}</strong></span>
               <span>Cump.: <strong>${pct(c)}</strong></span>
             </div>
           </div>
-          <div class="m-line2">
-            <div class="progress"><span style="width:${isFinite(c)? clamp(c,0,130) : 0}%; background:${isFinite(c) ? (c>=100? 'linear-gradient(90deg,#16a34a,#22c55e)' : c>=80? 'linear-gradient(90deg,#f59e0b,#fbbf24)' : 'linear-gradient(90deg,#ef4444,#f87171)') : '#1b2433'}"></span></div>
-          </div>
-          <div class="m-line3" style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;">
-            <div class="m-litros hint">Litros: ${fmt(l)}</div>
-            <div class="m-actions">
-              ${ document.getElementById('toggleCarga')?.checked ? `<button class="primary" data-linea="${linea}" data-sabor="${sabor}" style="width:100%;">✏️ Cargar</button>` : ''}
-            </div>
+          <div class="progress"><span style="width:${isFinite(c)? clamp(c,0,130) : 0}%; background:${isFinite(c) ? (c>=100? 'linear-gradient(90deg,#16a34a,#22c55e)' : c>=80? 'linear-gradient(90deg,#f59e0b,#fbbf24)' : 'linear-gradient(90deg,#ef4444,#f87171)') : '#1b2433'}"></span></div>
+          <div class="m-actions">
+            ${ document.getElementById('toggleCarga')?.checked ? `<button class="primary btn-xs" data-linea="${linea}" data-sabor="${sabor}">✏️ Cargar</button>` : '' }
           </div>
         </div>
       </td>
     `;
-    if (document.getElementById('toggleCarga')?.checked){
-      const btnM = trM.querySelector('button.primary');
-      btnM?.addEventListener('click',()=>openCarga(linea, sabor, false));
-    }
+    trM.querySelector('button.primary')?.addEventListener('click',()=>openCarga(linea, sabor, false));
     $mBody.appendChild(trM);
   }
   applyMobileMode();
 }
 
+
 // -------- Carga --------
 let cargaCtx = { linea:null, sabor:null, isNew:false };
 
+// -------- Carga --------
 function openCarga(linea, sabor, isNew){
   if (!$modalCarga) return;
   ensureSecondSaborInput();
+
   const it = state.lineas[linea]?.[sabor] || { producto:'', plan:{t1:0,t2:0,t3:0,total:0}, real:{t1:0,t2:0,t3:0,total:0} };
   cargaCtx = { linea, sabor, isNew: !!isNew };
   $cLinea.textContent = linea;
 
   if (isNew){
-  // Primer sabor editable
-  if ($cSaborInput){
-    $cSaborInput.style.display='block';
-    $cSaborInput.value = '';
-    $cSaborInput.placeholder = '';
-    setTimeout(()=>{ try{ $cSaborInput.focus(); }catch{} }, 60);
+    // Sabor 1
+    if ($cSaborInput){
+      $cSaborInput.style.display='block';
+      $cSaborInput.value = '';
+      setTimeout(()=>{ try{ $cSaborInput.focus(); }catch{} }, 60);
+    }
+    // Sabor 2 visible (nuevo)
+    if ($cSabor2Input){
+      $cSabor2Input.style.display='block';
+      $cSabor2Input.value = '';
+    }
+    if ($cSaborRead) $cSaborRead.style.display='none';
+  } else {
+    // Editando existente: mostramos el nombre guardado y ocultamos inputs
+    if ($cSaborInput) $cSaborInput.style.display='none';
+    if ($cSabor2Input){ $cSabor2Input.style.display='none'; }
+    if ($cSaborRead){
+      $cSaborRead.textContent = (it.producto || sabor || '-');
+      $cSaborRead.style.display='inline-flex';
+    }
   }
-  // Chip de lectura oculto
-  if ($cSaborRead) $cSaborRead.style.display='none';
-
-  // >>> Mostrar y limpiar Sabor 2 <<<
-  if ($cSabor2Input){
-    $cSabor2Input.style.display='block';
-    $cSabor2Input.value = '';
-  }
-} else {
-  // Editando un sabor existente: ocultar inputs de texto, mostrar chip
-  if ($cSaborInput) $cSaborInput.style.display='none';
-  if ($cSaborRead){
-    $cSaborRead.textContent = sabor || '-';
-    $cSaborRead.style.display='inline-flex';
-  }
-  // En edición NO usamos Sabor 2
-  
-}
 
   // Descripción opcional (si quedó un '.': ocultar)
   if ($cProducto) {
     const txt = (it?.producto ?? sabor ?? '').trim();
-    if (!txt || txt === '.') {
-      $cProducto.textContent = '';
-      $cProducto.style.display = 'none';
-    } else {
-      $cProducto.textContent = txt;
-      $cProducto.style.display = '';
-    }
+    if (!txt || txt === '.') { $cProducto.textContent = ''; $cProducto.style.display = 'none'; }
+    else { $cProducto.textContent = txt; $cProducto.style.display = ''; }
   }
 
   $plan_t1.value = it.plan?.t1 || 0;
@@ -420,6 +394,7 @@ function openCarga(linea, sabor, isNew){
   recalcCarga();
   $modalCarga.showModal();
 }
+
 
 function num(v){ const n = parseInt(v,10); return isNaN(n)?0:n; }
 function recalcCarga(){
@@ -547,6 +522,7 @@ function setPlanLockUI(it){
 // No duplicar claves: sobreescribe si existe
 function uniqueKeyForSabor(linea, base){ return base; }
 
+// Guardar: si hay Sabor 2, lo agrego al "producto" del mismo ítem (NO creo segunda barra)
 async function guardarCarga(){
   try{
     const linea = cargaCtx.linea;
@@ -554,7 +530,7 @@ async function guardarCarga(){
 
     if (cargaCtx.isNew){
       const typedRaw = ($cSaborInput?.value || '').trim();
-      const typed = typedRaw === '.' ? '' : typedRaw;
+      const typed = (typedRaw === '.') ? '' : typedRaw;
       if (!typed){ alert('Ingresá “sabor y formato”'); return; }
       const existing = findExistingKey(linea, typed);
       saborKey = existing || uniqueKeyForSabor(linea, typed);
@@ -576,42 +552,22 @@ async function guardarCarga(){
     plan.total = plan.t1 + plan.t2 + plan.t3;
     real.total = real.t1 + real.t2 + real.t3;
 
-    const rawProd = ($cProducto?.textContent || '').trim();
-    const producto = rawProd && rawProd !== '.' ? rawProd : saborKey;
+    // Producto/etiqueta (combino Sabor 1 + Sabor 2 si vino cargado)
+    const s1 = saborKey;
+    const s2Raw = ($cSabor2Input?.value || '').trim();
+    const s2 = (cargaCtx.isNew && s2Raw && normalizeKey(s2Raw) !== normalizeKey(s1)) ? ` / ${s2Raw}` : '';
+    const producto = (s1 + s2).trim();
 
     if (!state.lineas[linea]) state.lineas[linea] = {};
     state.lineas[linea][saborKey] = { ...(state.lineas[linea][saborKey]||{}), producto, plan, real };
-
-    // --- NUEVO: chequear “Sabor 2” (opcional) ---
-    let secondPayload = {};
-    if (cargaCtx.isNew && $cSabor2Input){
-      const s2Raw = ($cSabor2Input.value || '').trim();
-      const s2 = (s2Raw === '.') ? '' : s2Raw;
-      if (s2 && normalizeKey(s2) !== normalizeKey(saborKey)){
-        const existing2 = findExistingKey(linea, s2);
-        const sabor2Key = existing2 || uniqueKeyForSabor(linea, s2);
-        const plan2 = { t1:0,t2:0,t3:0,total:0 };
-        const real2 = { t1:0,t2:0,t3:0,total:0 };
-        const prod2 = sabor2Key;
-
-        state.lineas[linea][sabor2Key] = { ...(state.lineas[linea][sabor2Key]||{}), producto: prod2, plan: plan2, real: real2 };
-        secondPayload = { [sabor2Key]: { producto: prod2, plan: plan2, real: real2 } };
-      }
-    }
 
     const fechaISO = $fecha?.value || state.fecha;
     LS.save(fechaISO, state);
 
     if (FIREBASE_READY){
-      try{
-        const ref = doc(db, 'cumplimiento', fechaISO);
-        const payload = { lineas: { [linea]: { [saborKey]: { producto, plan, real }, ...secondPayload } } };
-        await setDoc(ref, payload, { merge:true });
-        notify('Guardado en Firestore ✓');
-      }catch(e){
-        console.error('Error Firestore', e);
-        notify('Guardado local (sin Firestore)');
-      }
+      const ref = doc(db, 'cumplimiento', fechaISO);
+      await setDoc(ref, { lineas: { [linea]: { [saborKey]: { producto, plan, real } } } }, { merge:true });
+      notify('Guardado en Firestore ✓');
     } else {
       notify('Guardado local (Firebase no configurado)');
     }
