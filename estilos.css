@@ -26,7 +26,7 @@
 /* Base */
 *{box-sizing:border-box}
 :root:not([data-theme="light"]) body{
-  background:linear-gradient(180deg,#0e1320,#0d1422 55%,#0b1220);
+  background:linear-gradient(180deg,#0e1320,#0d1422 55%,#010713);
 }
 body{
   margin:0;
@@ -440,3 +440,4 @@ button.danger:hover{ filter:brightness(1.02); }
 :root[data-theme="light"] .card.tone-ok   { background: linear-gradient(0deg,#ecfdf5,var(--panel)); border-color:#a7f3d0; }
 :root[data-theme="light"] .card.tone-warn { background: linear-gradient(0deg,#fff7ed,var(--panel)); border-color:#fed7aa; }
 :root[data-theme="light"] .card.tone-bad  { background: linear-gradient(0deg,#fef2f2,var(--panel)); border-color:#fecaca; }
+
