@@ -354,90 +354,79 @@ button.danger:hover{ filter:brightness(1.02); }
   }
 }
 
-/* ===== Tema claro: Soft Light (override) ===== */
-:root[data-theme="light"]{
-  --bg: #f6f7fb;
-  --panel: #ffffff;
-  --panel-2: #f3f4f6;
-  --card:#ffffff;
+/* ==========================================================
+   THEME "DIM NAVY" (intermedio) — Colores y pequeños overrides
+   ========================================================== */
+:root{
+  /* base más clara que el dark anterior */
+  --bg:#131a26;
+  --panel:#172133;
+  --panel-2:#1b2740;
+  --card:#151f2e;
 
-  --text: #0f172a;
-  --muted: #64748b;
+  /* chips/pastillas */
+  --chip:#1a2840;
+  --chipActive:#20324d;
 
-  --border: #e5e7eb;
-  --border-2: #e5e7eb;
-  --track: #e5e7eb;
+  /* texto */
+  --text:#eaf1fb;
+  --muted:#9fb1c9;
 
-  --chip:#eef2ff;
-  --chipActive:#e0e7ff;
+  /* acentos (ligeramente suaves) */
+  --green:#16c17b;
+  --yellow:#f2b400;
+  --red:#ef4d4d;
+  --blue:#4b90ff;
 
-  --green:#16a34a;
-  --yellow:#f59e0b;
-  --red:#ef4444;
-  --blue:#3b82f6;
+  /* bordes/track (más claros) */
+  --border:#2a3a55;
+  --border-2:#344a6b;
+  --track:#1b2a3c;
+
+  --shadow:0 10px 26px rgba(0,0,0,.22);
 }
 
-:root[data-theme="light"] body{ background:var(--bg); color:var(--text); }
-:root[data-theme="light"] header{
-  background:rgba(255,255,255,.85);
-  backdrop-filter:blur(10px);
-  border-bottom:1px solid var(--border);
+/* Fondo general (un poco más claro que antes) */
+:root:not([data-theme="light"]) body{
+  background:linear-gradient(180deg,#131a26,#101a28 55%,#0f1826);
 }
-:root[data-theme="light"] .card,
-:root[data-theme="light"] dialog,
-:root[data-theme="light"] aside,
-:root[data-theme="light"] .row{
-  background:var(--panel);
+
+/* Header menos oscuro */
+header{ background:rgba(20,28,42,.72); }
+
+/* Paneles y tarjetas con el nuevo contraste */
+.card, aside, .row{
+  background:var(--card);
   border:1px solid var(--border);
-  box-shadow:0 8px 24px rgba(0,0,0,.05);
+  box-shadow:var(--shadow);
 }
 
-/* Badge */
-:root[data-theme="light"] .card .badge{
-  background:#eef2ff;
-  color:#3730a3;
-  border:1px solid #dbeafe;
+/* Toggle/pills usan los nuevos chips (y sin borde de contenedor en la pill-card) */
+.pill{ background:var(--chip); border:1px solid var(--border-2); }
+.pill button.active{ background:var(--chipActive); color:var(--text); }
+
+/* Botonerita por tarjeta (T1/T2/T3) más clara */
+.pill-card button{
+  background:#1c2a3e;
+  border:1px solid #2a3d5a;
+}
+.pill-card button.active{
+  background:#1a2d46;
+  border-color:#3a5d8a;
 }
 
-/* Pastillas */
-:root[data-theme="light"] .pill{ background:var(--panel-2); border-color:var(--border); }
-:root[data-theme="light"] .pill button{ color:var(--text); }
-:root[data-theme="light"] .pill button.active{ background:#e8edff; color:var(--text); }
-:root[data-theme="light"] .pill-card button{
-  background:var(--panel-2);
+/* Modal un toque más claro para lectura */
+dialog{ background:#121c2e; }
+
+/* Inputs del modal: oscuros pero legibles */
+#modal-carga .row3 input[type="number"]{
+  background:#122239;
+  border:1px solid #324a6a;
   color:var(--text);
-  border:1px solid var(--border);
-}
-:root[data-theme="light"] .pill-card button.active{
-  background:#e8edff; border-color:#c7d2fe; box-shadow:0 0 0 1px #dbeafe inset;
 }
 
-/* Botones / cierres */
-:root[data-theme="light"] .btn-toggle,
-:root[data-theme="light"] button.primary,
-:root[data-theme="light"] .close{
-  background:var(--panel-2);
-  color:var(--text);
-  border:1px solid var(--border);
+/* Barra de progreso con el nuevo track/borde */
+.progress{
+  background:var(--track);
+  border:1px solid var(--border-2);
 }
-:root[data-theme="light"] button[aria-label="Ver detalle"]{
-  background:var(--panel-2) !important;
-  border:1px solid var(--border) !important;
-  color:var(--text) !important;
-}
-
-/* Banner */
-:root[data-theme="light"] .banner{
-  background:#eef2ff;
-  color:#3730a3;
-  border-bottom:1px solid #dbeafe;
-}
-
-/* Track progreso claro */
-:root[data-theme="light"] .progress{ background:var(--track); }
-
-/* Tonos por cumplimiento sobre claro */
-:root[data-theme="light"] .card.tone-ok   { background: linear-gradient(0deg,#ecfdf5,var(--panel)); border-color:#a7f3d0; }
-:root[data-theme="light"] .card.tone-warn { background: linear-gradient(0deg,#fff7ed,var(--panel)); border-color:#fed7aa; }
-:root[data-theme="light"] .card.tone-bad  { background: linear-gradient(0deg,#fef2f2,var(--panel)); border-color:#fecaca; }
-
