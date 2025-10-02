@@ -2,7 +2,7 @@ import { app, db } from './firebase-config.js';
 import { doc, onSnapshot, setDoc, deleteField } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
-// -------- Config & estado --------
+/* ---------------- Config & estado ---------------- */
 const FIREBASE_READY = !!(app?.options?.projectId && !String(app.options.projectId).includes('TU_PROJECT_ID'));
 const ALL_LINEAS = ['LINEA001','LINEA002','LINEA003','LINEA005','LINEA006','LINEA007'];
 let CURRENT_TURNO = 'total';
@@ -16,7 +16,7 @@ const stateDefaultFecha = (()=> {
 
 let state = { fecha: stateDefaultFecha, lineas: { LINEA001:{}, LINEA007:{} } };
 
-// -------- DOM refs --------
+/* ---------------- DOM refs ---------------- */
 const $grid = document.getElementById('grid-lineas');
 const $lista = document.getElementById('lista-desvios') || null;
 const $fecha = document.getElementById('fecha');
@@ -42,9 +42,8 @@ const $real_total = document.getElementById('real_total');
 const $cumpl_pct = document.getElementById('cumpl_pct');
 const $btnGuardar = document.getElementById('btn-guardar');
 
-// Segundo input de sabor (lo inyectamos si no existe en el HTML)
+/* ---- Segundo input de sabor (inyectado si no existe) ---- */
 let $cSabor2Input = document.getElementById('c-sabor2-input');
-
 function ensureSecondSaborInput(){
   const row2 = document.querySelector('#modal-carga .row2');
   if (!row2) return;
@@ -60,7 +59,7 @@ function ensureSecondSaborInput(){
   $cSabor2Input = document.getElementById('c-sabor2-input');
 }
 
-// --- UX: “0 inteligente” en inputs numéricos (no toca readonly/disabled)
+/* ---------------- UX: “0 inteligente” ---------------- */
 function attachSmartZero(el){
   if(!el) return;
   function clearIfZero(){
@@ -76,15 +75,15 @@ function attachSmartZero(el){
   el.addEventListener('focus', clearIfZero);
   el.addEventListener('blur', restoreIfEmpty);
 }
-// activar para Plan/Real
 [$plan_t1,$plan_t2,$plan_t3,$real_t1,$real_t2,$real_t3].forEach(attachSmartZero);
 
-// -------- Helpers --------
-const fmt = (n) => (n==null?'-':Number(n).toLocaleString('es-AR'));
-const pct = (x) => (isFinite(x) && x>=0 ? (x).toFixed(1).replace('.',',')+'%' : '-');
-const clamp = (n,min,max)=>Math.max(min,Math.min(max,n));
+/* ---------------- Helpers ---------------- */
+const fmt  = (n) => (n==null?'-':Number(n).toLocaleString('es-AR'));
+const pct  = (x) => (isFinite(x) && x>=0 ? (x).toFixed(1).replace('.',',')+'%' : '-');
+const clamp= (n,min,max)=>Math.max(min,Math.min(max,n));
 const colorBy = (p)=> p>=100? 'b-green' : p>=80? 'b-yellow' : 'b-red';
 function cumplimiento(plan, real){ return plan>0? (real/plan*100) : NaN; }
+
 function aggregateLinea(lineaObj){
   let plan={t1:0,t2:0,t3:0,total:0}, real={t1:0,t2:0,t3:0,total:0};
   for(const sabor in lineaObj){
@@ -107,11 +106,11 @@ function worstSkus(data, turno){
   return items.filter(x=>x.plan>0).sort((a,b)=>a.cumpl-b.cumpl).slice(0,8);
 }
 
-// Normalización de claves (evita duplicados por mayúsculas/acentos/espacios)
+// Normalización para evitar duplicados
 function normalizeKey(s){
   return (s||'')
     .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-    .replace(/[·•\-]/g,' ')          // unificamos separadores comunes
+    .replace(/[·•\-]/g,' ')
     .trim().replace(/\s+/g,' ')
     .toUpperCase();
 }
@@ -124,7 +123,7 @@ function findExistingKey(linea, typed){
   return null;
 }
 
-// LocalStorage
+/* ---------------- LocalStorage ---------------- */
 const LS = {
   key: (f)=>`cumplimiento_state_${f}`,
   save(fecha, data){ try{ localStorage.setItem(this.key(fecha), JSON.stringify(data)); }catch{} },
@@ -132,7 +131,7 @@ const LS = {
 };
 function notify(msg){ if(!$banner) return; $banner.textContent = msg; $banner.hidden = false; setTimeout(()=>{ $banner.hidden = true; }, 2200); }
 
-// Cambiar turno global desde cualquier control (header, modal o tarjeta)
+/* ---------------- Turno global ---------------- */
 function setTurno(newTurno){
   CURRENT_TURNO = newTurno;
   // Header
@@ -149,15 +148,14 @@ function setTurno(newTurno){
   render(state);
   const lineName = document.getElementById('m-title')?.textContent?.replace('Detalle · ','');
   if (document.getElementById('modal-detalle')?.open && lineName) renderDetalle(lineName);
-  if (document.getElementById('modal-carga')?.open && typeof setExclusiveTurnoUI==='function') setExclusiveTurnoUI();
+  if (document.getElementById('modal-carga')?.open) setExclusiveTurnoUI();
 }
 
-// -------- Render grid --------
+/* ---------------- Render grid ---------------- */
 function render(data){
   if (!$grid) return;
   const showEmpty = document.getElementById('toggleEmpty')?.checked;
-  const lineasBase = showEmpty ? ALL_LINEAS : Object.keys(data.lineas);
-  const lineas = lineasBase;
+  const lineas = showEmpty ? ALL_LINEAS : Object.keys(data.lineas);
 
   $grid.innerHTML='';
   lineas.forEach(linea=>{
@@ -166,15 +164,14 @@ function render(data){
     const p = CURRENT_TURNO==='total' ? agg.plan.total : agg.plan[CURRENT_TURNO];
     const r = CURRENT_TURNO==='total' ? agg.real.total : agg.real[CURRENT_TURNO];
     const c = cumplimiento(p,r);
-    const tone = isFinite(c) ? (c>=100? 'tone-ok' : c>=80? 'tone-warn' : 'tone-bad') : 'tone-unk';
 
-    // NUEVO: clase de “tono” para la tarjeta según cumplimiento del turno activo
-    const toneClass = isFinite(c) ? badge.replace('b-','tone-') : '';
+    const badge = isFinite(c) ? colorBy(c) : 'b-yellow';
+    const tone  = isFinite(c) ? (c>=100? 'tone-ok' : c>=80? 'tone-warn' : 'tone-bad') : 'tone-unk';
 
     const card = document.createElement('div');
-const isEmpty = ((p||0)===0 && (r||0)===0);
-const isCarga = document.getElementById('toggleCarga')?.checked;
-card.className = `card ${tone}` + (isEmpty && !isCarga ? ' muted' : '');
+    const isEmpty = ((p||0)===0 && (r||0)===0);
+    const isCarga = document.getElementById('toggleCarga')?.checked;
+    card.className = `card ${tone}` + (isEmpty && !isCarga ? ' muted' : '');
 
     card.innerHTML = `
       <h3 style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
@@ -199,9 +196,8 @@ card.className = `card ${tone}` + (isEmpty && !isCarga ? ' muted' : '');
       <button aria-label="Ver detalle" style="align-self:flex-start;margin-top:6px;border:1px solid #243248;background:#162032;color:var(--text);padding:8px 10px;border-radius:10px;cursor:pointer">Ver detalle</button>
     `;
 
-    const btnDetalle = card.querySelector('button[aria-label="Ver detalle"]');
-    btnDetalle.addEventListener('click',()=>openDetalle(linea));
-    if (isEmpty && !isCarga) btnDetalle.setAttribute('disabled','true');
+    card.querySelector('button[aria-label="Ver detalle"]')?.addEventListener('click',()=>openDetalle(linea));
+    if (isEmpty && !isCarga) card.querySelector('button[aria-label="Ver detalle"]')?.setAttribute('disabled','true');
 
     const btnNew = card.querySelector('button[data-new]');
     if (btnNew) {
@@ -237,8 +233,7 @@ card.className = `card ${tone}` + (isEmpty && !isCarga ? ' muted' : '');
   }
 }
 
-
-// -------- Detalle --------
+/* ---------------- Detalle ---------------- */
 function openDetalle(linea){
   if (!$modal) return;
   $mTitle.textContent = `Detalle · ${linea}`;
@@ -251,7 +246,7 @@ function openDetalle(linea){
   $modal.showModal();
 }
 
-// Mobile/desktop switch sin depender de CSS extra
+// Switch mobile/desktop
 const mq = window.matchMedia('(max-width: 600px)');
 function applyMobileMode(){
   if (!$mBody) return;
@@ -274,7 +269,6 @@ function renderDetalle(linea){
     return;
   }
 
-  // ¿Hay ALGÚN item con datos en el turno? (para poder ocultar los "0/0")
   const hasDataInTurno = keys.some(k=>{
     const it = productos[k]; 
     const p = CURRENT_TURNO==='total' ? (it.plan?.total||0) : (it.plan?.[CURRENT_TURNO]||0);
@@ -290,10 +284,9 @@ function renderDetalle(linea){
     const c = cumplimiento(p,r);
     const label = it.producto || sabor;
 
-    // si hay por lo menos un registro con datos, no muestro los 0/0
     if (hasDataInTurno && p===0 && r===0) continue;
 
-    // Desktop row
+    // Desktop
     const tr = document.createElement('tr');
     tr.className = 'desktop';
     tr.innerHTML = `
@@ -311,7 +304,7 @@ function renderDetalle(linea){
     tr.querySelector('button.primary')?.addEventListener('click',()=>openCarga(linea, sabor, false));
     $mBody.appendChild(tr);
 
-    // Mobile row (una sola barra)
+    // Mobile (una sola barra)
     const trM = document.createElement('tr');
     trM.className = 'mobile';
     trM.style.display = 'none';
@@ -339,11 +332,9 @@ function renderDetalle(linea){
   applyMobileMode();
 }
 
-
-// -------- Carga --------
+/* ---------------- Carga ---------------- */
 let cargaCtx = { linea:null, sabor:null, isNew:false };
 
-// -------- Carga --------
 function openCarga(linea, sabor, isNew){
   if (!$modalCarga) return;
   ensureSecondSaborInput();
@@ -353,29 +344,26 @@ function openCarga(linea, sabor, isNew){
   $cLinea.textContent = linea;
 
   if (isNew){
-    // Sabor 1
     if ($cSaborInput){
       $cSaborInput.style.display='block';
       $cSaborInput.value = '';
+      $cSaborInput.placeholder = ''; // sin “Ej: …”
       setTimeout(()=>{ try{ $cSaborInput.focus(); }catch{} }, 60);
     }
-    // Sabor 2 visible (nuevo)
     if ($cSabor2Input){
       $cSabor2Input.style.display='block';
       $cSabor2Input.value = '';
     }
     if ($cSaborRead) $cSaborRead.style.display='none';
   } else {
-    // Editando existente: mostramos el nombre guardado y ocultamos inputs
-    if ($cSaborInput) $cSaborInput.style.display='none';
-    if ($cSabor2Input){ $cSabor2Input.style.display='none'; }
+    if ($cSaborInput)  $cSaborInput.style.display='none';
+    if ($cSabor2Input) $cSabor2Input.style.display='none';
     if ($cSaborRead){
       $cSaborRead.textContent = (it.producto || sabor || '-');
       $cSaborRead.style.display='inline-flex';
     }
   }
 
-  // Descripción opcional (si quedó un '.': ocultar)
   if ($cProducto) {
     const txt = (it?.producto ?? sabor ?? '').trim();
     if (!txt || txt === '.') { $cProducto.textContent = ''; $cProducto.style.display = 'none'; }
@@ -394,7 +382,6 @@ function openCarga(linea, sabor, isNew){
   recalcCarga();
   $modalCarga.showModal();
 }
-
 
 function num(v){ const n = parseInt(v,10); return isNaN(n)?0:n; }
 function recalcCarga(){
@@ -416,7 +403,7 @@ function recalcCarga(){
   [$plan_t1,$plan_t2,$plan_t3,$real_t1,$real_t2,$real_t3].forEach(el=>el?.addEventListener(ev, recalcCarga));
 });
 
-// Insertar subtítulos encima de inputs cuando es exclusivo
+// Subtítulos en exclusivo
 function addSubLabels(row){
   const planCell = row.children?.[1];
   const realCell = row.children?.[2];
@@ -437,7 +424,6 @@ function setExclusiveTurnoUI(){
   if (!$modalCarga) return;
   const exclusive = (CURRENT_TURNO==='t1' || CURRENT_TURNO==='t2' || CURRENT_TURNO==='t3');
 
-  // Ocultar encabezado de columnas "Plan / Real" en exclusivo
   const headerRow = Array.from($modalCarga.querySelectorAll('.form_grid .row3')).find(r=>{
     const hints = r.querySelectorAll('.hint');
     return hints.length===2 &&
@@ -446,7 +432,6 @@ function setExclusiveTurnoUI(){
   });
   if (headerRow) headerRow.style.display = exclusive ? 'none' : 'grid';
 
-  // Filas de T1/T2/T3
   const filas = Array.from($modalCarga.querySelectorAll('.form_grid .row3'));
   const filaT1 = filas.find(r=>/^\s*T1\s*$/i.test(r.querySelector('strong')?.textContent||''));
   const filaT2 = filas.find(r=>/^\s*T2\s*$/i.test(r.querySelector('strong')?.textContent||''));
@@ -459,11 +444,9 @@ function setExclusiveTurnoUI(){
     if (isThis && exclusive) addSubLabels(f); else removeSubLabels(f);
   });
 
-  // Fila Total (oculta en exclusivo)
   const totalRow = $modalCarga.querySelector('.total_row')?.closest('.row3');
   if (totalRow) totalRow.style.display = exclusive ? 'none' : 'grid';
 
-  // Deshabilitar inputs que no corresponden
   $plan_t1?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t1');
   $real_t1?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t1');
   $plan_t2?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t2');
@@ -471,7 +454,6 @@ function setExclusiveTurnoUI(){
   $plan_t3?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t3');
   $real_t3?.toggleAttribute('disabled', exclusive && CURRENT_TURNO!=='t3');
 
-  // Etiqueta de cumplimiento
   const cumpRow = $cumpl_pct?.closest('.row3');
   const labelEl = cumpRow?.querySelector('strong');
   if (labelEl){
@@ -480,13 +462,11 @@ function setExclusiveTurnoUI(){
   recalcCarga();
 }
 
-// Lock del plan (readonly para que SIEMPRE se vea el valor)
 // Lock del plan: NO bloquear en Modo Carga
 function setPlanLockUI(it){
   const exclusive = (CURRENT_TURNO==='t1' || CURRENT_TURNO==='t2' || CURRENT_TURNO==='t3');
   const isCarga = !!document.getElementById('toggleCarga')?.checked;
 
-  // 1) Siempre empezar desbloqueando
   [$plan_t1,$plan_t2,$plan_t3].forEach(el=>{
     if (!el) return;
     el.removeAttribute('readonly');
@@ -494,7 +474,6 @@ function setPlanLockUI(it){
     if (!exclusive) el.removeAttribute('disabled');
   });
 
-  // 2) Si NO estamos en modo carga, podés mantener el lock
   if (!isCarga){
     const lock = exclusive
       ? ((it?.plan?.[CURRENT_TURNO]||0) > 0)
@@ -512,17 +491,16 @@ function setPlanLockUI(it){
     }
   }
 
-  // 3) Asegurar que el turno actual esté habilitado para editar
   if (exclusive){
     ({ t1:$plan_t1, t2:$plan_t2, t3:$plan_t3 }[CURRENT_TURNO])?.removeAttribute('disabled');
   }
 }
 
-
-// No duplicar claves: sobreescribe si existe
+// No duplicar claves
 function uniqueKeyForSabor(linea, base){ return base; }
 
-// Guardar: si hay Sabor 2, lo agrego al "producto" del mismo ítem (NO creo segunda barra)
+/* ---------------- Guardar ---------------- */
+// Si se carga Sabor 2, lo combinamos en el “producto” del mismo ítem.
 async function guardarCarga(){
   try{
     const linea = cargaCtx.linea;
@@ -552,7 +530,6 @@ async function guardarCarga(){
     plan.total = plan.t1 + plan.t2 + plan.t3;
     real.total = real.t1 + real.t2 + real.t3;
 
-    // Producto/etiqueta (combino Sabor 1 + Sabor 2 si vino cargado)
     const s1 = saborKey;
     const s2Raw = ($cSabor2Input?.value || '').trim();
     const s2 = (cargaCtx.isNew && s2Raw && normalizeKey(s2Raw) !== normalizeKey(s1)) ? ` / ${s2Raw}` : '';
@@ -580,10 +557,9 @@ async function guardarCarga(){
     console.error('guardarCarga EXCEPTION', err);
   }
 }
-
 $btnGuardar?.addEventListener('click', guardarCarga);
 
-// -------- Firestore sync --------
+/* ---------------- Firestore sync ---------------- */
 async function subscribeToDate(fechaISO){
   if (!FIREBASE_READY) return;
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
@@ -608,7 +584,7 @@ async function subscribeToDate(fechaISO){
   });
 }
 
-// -------- Init & eventos --------
+/* ---------------- Init & eventos ---------------- */
 (function init(){
   if ($fecha) $fecha.value = state.fecha;
   const local = LS.load(state.fecha);
@@ -625,12 +601,12 @@ async function subscribeToDate(fechaISO){
   onAuthStateChanged(auth, ()=>{ subscribeToDate($fecha?.value || state.fecha); });
 })();
 
-// Turnos (delegado): Header (.toggle), tarjetas (.pill-card) y modal (#m-turnos)
+// Delegación de clicks para cambiar de turno (header, cards y modal)
 document.addEventListener('click', (ev) => {
   const btn = ev.target.closest('button[data-turno]');
   if (!btn) return;
   ev.preventDefault();
-  ev.stopPropagation();      // evita que algún click “deborde” a otros botones
+  ev.stopPropagation();
   setTurno(btn.dataset.turno);
 });
 
@@ -657,28 +633,21 @@ $fecha?.addEventListener('change', ()=>{
 
 window.dashboard = { subscribeToDate };
 
-/* ===== UI extras integrados en app.js ===== */
-/* - Checkboxes → Botones (sin romper tus listeners)
-   - Botón 🗑 Borrar por fila (con borrado Firestore si hay config)
-   - Observadores para reinyectar en cada render del modal
-*/
-
+/* ---------------- UI extras (botones & borrar) ---------------- */
 (function uiEnhancements(){
   const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
   const $  = (sel, root=document) => root.querySelector(sel);
 
-  /* ----------  A) Checkboxes -> Botones ---------- */
+  // A) Checkboxes -> Botones
   function initTogglesAsButtons(){
     const headerWrap = document.querySelector('header .wrap.bar');
     const chkSinPlan = document.getElementById('toggleEmpty');
     const chkModo    = document.getElementById('toggleCarga');
     if (!headerWrap || !chkSinPlan || !chkModo) return;
 
-    // Ocultar los <label> originales (si existen)
     const oldLabels = [...headerWrap.querySelectorAll('label.switch')];
     oldLabels.forEach(l => { l.style.display = 'none'; });
 
-    // Crear contenedor de botones si no existe
     let btnbar = headerWrap.querySelector('.btnbar');
     if (!btnbar){
       btnbar = document.createElement('div');
@@ -687,7 +656,6 @@ window.dashboard = { subscribeToDate };
       headerWrap.insertBefore(btnbar, ref);
     }
 
-    // Crear botones si no están
     let btnSinPlan = document.getElementById('btnSinPlan');
     let btnModo    = document.getElementById('btnModoCarga');
 
@@ -708,7 +676,6 @@ window.dashboard = { subscribeToDate };
       btnbar.appendChild(btnModo);
     }
 
-    // Sincronización botón ↔ checkbox
     const syncBtn = (btn, checked)=>{
       btn.classList.toggle('is-active', checked);
       btn.setAttribute('aria-pressed', String(checked));
@@ -719,18 +686,16 @@ window.dashboard = { subscribeToDate };
       syncBtn(btn, chk.checked);
     };
 
-    // Eventos
     btnSinPlan.addEventListener('click', ()=> toggleFromButton(btnSinPlan, chkSinPlan));
     btnModo.addEventListener('click',    ()=> toggleFromButton(btnModo,    chkModo));
     chkSinPlan.addEventListener('change',()=> syncBtn(btnSinPlan, chkSinPlan.checked));
     chkModo.addEventListener('change',   ()=> syncBtn(btnModo,    chkModo.checked));
 
-    // Estado inicial
     syncBtn(btnSinPlan, chkSinPlan.checked);
     syncBtn(btnModo,    chkModo.checked);
   }
 
-  /* ----------  B) Botón 🗑 Borrar por fila ---------- */
+  // B) Botón 🗑 Borrar por fila (desktop y móvil)
   function lineaActualDesdeTitulo(){
     const t = document.getElementById('m-title')?.textContent || '';
     const m = t.match(/·\s*(.+)$/);
@@ -771,63 +736,54 @@ window.dashboard = { subscribeToDate };
     tr?.remove(); trM?.remove();
 
     render(state);
-    const lineName = linea;
-    if (document.getElementById('modal-detalle')?.open && lineName) {
-      setTimeout(()=>{}, 0);
-    }
   }
 
   function injectDeleteButtons(){
-  const tb = document.getElementById('m-body'); 
-  if (!tb) return;
+    const tb = document.getElementById('m-body'); 
+    if (!tb) return;
 
-  // ----- DESKTOP -----
-  [...tb.querySelectorAll('tr.desktop')].forEach(tr=>{
-    const tds = tr.querySelectorAll('td'); if (!tds.length) return;
-    const tdAcc = tds[tds.length - 1];
-    if (tdAcc.querySelector('.btn-del')) return; // ya está
+    // Desktop
+    [...tb.querySelectorAll('tr.desktop')].forEach(tr=>{
+      const tds = tr.querySelectorAll('td'); if (!tds.length) return;
+      const tdAcc = tds[tds.length - 1];
+      if (tdAcc.querySelector('.btn-del')) return;
+      const sabor = (tds[0]?.textContent || '').trim();
 
-    const sabor = (tds[0]?.textContent || '').trim();
+      const group = document.createElement('div');
+      group.className = 'btn-group';
 
-    // grupo de acciones
-    const group = document.createElement('div');
-    group.className = 'btn-group';
+      const btnCargar = tdAcc.querySelector('button.primary, a');
+      if (btnCargar) group.appendChild(btnCargar);
 
-    const btnCargar = tdAcc.querySelector('button.primary, a');
-    if (btnCargar) group.appendChild(btnCargar);
+      const btnDel = document.createElement('button');
+      btnDel.type = 'button';
+      btnDel.className = 'btn-small danger btn-del';
+      btnDel.textContent = '🗑 Borrar';
+      btnDel.dataset.sabor = sabor;
+      group.appendChild(btnDel);
 
-    const btnDel = document.createElement('button');
-    btnDel.type = 'button';
-    btnDel.className = 'btn-small danger btn-del';
-    btnDel.textContent = '🗑 Borrar';
-    btnDel.dataset.sabor = sabor;
-    group.appendChild(btnDel);
+      tdAcc.innerHTML = '';
+      tdAcc.appendChild(group);
+    });
 
-    tdAcc.innerHTML = '';
-    tdAcc.appendChild(group);
-  });
+    // Móvil
+    [...tb.querySelectorAll('tr.mobile')].forEach(tr=>{
+      const sabor = (tr.querySelector('.m-sabor strong')?.textContent || '').trim();
+      const actions = tr.querySelector('.m-actions');
+      if (!actions) return;
+      if (actions.querySelector('.btn-del')) return;
 
-  // ----- MÓVIL -----
-  [...tb.querySelectorAll('tr.mobile')].forEach(tr=>{
-    const sabor = (tr.querySelector('.m-sabor strong')?.textContent || '').trim();
-    const actions = tr.querySelector('.m-actions');
-    if (!actions) return;
-    if (actions.querySelector('.btn-del')) return; // ya está
+      const btnDel = document.createElement('button');
+      btnDel.type = 'button';
+      btnDel.className = 'btn-small danger btn-del';
+      btnDel.textContent = '🗑 Borrar';
+      btnDel.dataset.sabor = sabor;
+      btnDel.style.width = '100%';
+      btnDel.style.marginTop = '6px';
 
-    const btnDel = document.createElement('button');
-    btnDel.type = 'button';
-    btnDel.className = 'btn-small danger btn-del';
-    btnDel.textContent = '🗑 Borrar';
-    btnDel.dataset.sabor = sabor;
-
-    // que se vea prolijo en celular
-    btnDel.style.width = '100%';
-    btnDel.style.marginTop = '6px';
-
-    actions.appendChild(btnDel);
-  });
-}
-
+      actions.appendChild(btnDel);
+    });
+  }
 
   document.addEventListener('click', (ev)=>{
     const btn = ev.target.closest('.btn-del'); if (!btn) return;
@@ -837,7 +793,7 @@ window.dashboard = { subscribeToDate };
   const mBody = document.getElementById('m-body');
   if (mBody){
     const obs = new MutationObserver(injectDeleteButtons);
-    obs.observe(mBody, { childList:true });
+    obs.observe(mBody, { childList:true, subtree:true });
   }
 
   if (document.readyState === 'loading'){
