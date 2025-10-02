@@ -341,3 +341,25 @@ button.danger:hover{ filter:brightness(1.02); }
 
 /* Acción borrar también en móvil (más chica) */
 .btn-group .btn-del{ padding: 6px 10px; font-size: 12px; border-radius: 10px; }
+
+/* Tamaño base (desktop/tablet) */
+.card .badge{
+  font-size: 0.9rem;        /* ajustá si querés también en desktop */
+  font-weight: 600;
+  letter-spacing: .2px;
+}
+
+/* Mobile */
+@media (max-width: 600px){
+  /* Escala con el ancho de pantalla y queda en proporción con los KPIs */
+  .card .badge{
+    font-size: clamp(1rem, 3.6vw, 1.25rem);
+    padding: 6px 10px;      /* un poco más de “aire” */
+    border-radius: 14px;
+  }
+
+  /* (opcional) si querés subir un toque los números Plan/Real para mantener proporción */
+  .card .kpis .kpi .val{
+    font-size: clamp(1.05rem, 4.1vw, 1.45rem);
+  }
+}
