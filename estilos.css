@@ -1,8 +1,10 @@
 :root{
-  /* ===== Paleta Dark Slate (recomendada) ===== */
+  /* ===== Paleta Dark (por defecto) ===== */
   --bg:#0e1320;
   --panel:#121829;
+  --panel-2:#0f172a;
   --card:#0f172a;
+
   --chip:#142036;
   --chipActive:#1a2a46;
 
@@ -23,9 +25,11 @@
 
 /* Base */
 *{box-sizing:border-box}
+:root:not([data-theme="light"]) body{
+  background:linear-gradient(180deg,#0e1320,#0d1422 55%,#0b1220);
+}
 body{
   margin:0;
-  background:linear-gradient(180deg,#0e1320,#0d1422 55%,#0b1220);
   color:var(--text);
   font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif
 }
@@ -186,8 +190,6 @@ button.primary:hover{filter:brightness(1.06)}
   .pill.pill-card{ flex-wrap:wrap; row-gap:8px; }
 }
 
-/* ===== NOTA: Se elimina el bloque de “Fondo rojo” que forzaba body y header claros ===== */
-
 /* Modal de Carga: compacto */
 #modal-carga{ max-width:640px; width:min(640px,96vw); }
 #modal-carga .modal-body{ overflow-x:hidden; max-width:100%; }
@@ -259,7 +261,7 @@ button.danger:hover{ filter:brightness(1.02); }
 /* Contenedor de botones */
 .btnbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 
-/* Botón toggle (usa tu paleta) */
+/* Botón toggle */
 .btn-toggle{
   background:#162032;
   color:var(--text);
@@ -272,8 +274,6 @@ button.danger:hover{ filter:brightness(1.02); }
   transition:transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease, color .12s ease;
 }
 .btn-toggle:hover{ transform:translateY(-1px); box-shadow:0 0 0 1px #243248 inset; }
-
-/* Estado activo */
 .btn-toggle.is-active{
   background:#0f1a2a;
   border-color: var(--blue);
@@ -284,30 +284,29 @@ button.danger:hover{ filter:brightness(1.02); }
 #toggleEmpty, #toggleCarga { display: none !important; }
 
 #modal-carga .hint:empty { display: none; }
-
 #c-producto{ display:none !important; }
 
 /* Modal Carga: espacio entre 'Línea' y el chip */
 #modal-carga .row2 > div:first-child{
   display: flex;
   align-items: center;
-  gap: 8px;          /* ← separa label y badge */
+  gap: 8px;
 }
 
+/* Tonos por cumplimiento */
 .card.tone-green { border:1px solid #16a34a; background:rgba(22,163,74,.08); }
 .card.tone-yellow{ border:1px solid #f59e0b; background:rgba(245,158,11,.10); }
 .card.tone-red   { border:1px solid #ef4444; background:rgba(239,68,68,.10); }
 
-/* Tonos por cumplimiento */
 .card.tone-ok   { background: rgba(16, 185, 129, 0.10); border: 1px solid rgba(16,185,129,.25); }
 .card.tone-warn { background: rgba(245, 158, 11, 0.10); border: 1px solid rgba(245,158,11,.25); }
 .card.tone-bad  { background: rgba(239, 68, 68, 0.10);  border: 1px solid rgba(239,68,68,.25); }
 .card.tone-unk  { background: rgba(148, 163, 184, 0.10); border: 1px solid rgba(148,163,184,.25); }
 
-/* Botones compactos reutilizables */
+/* Botones compactos */
 .btn-xs { padding: 6px 10px !important; font-size: 12px !important; border-radius: 10px !important; }
 
-/* Modal carga – mobile first */
+/* Mobile first ajustes */
 #modal-carga .form_grid .row3 { gap: 8px; }
 #modal-carga input[type="text"], 
 #modal-carga input[type="number"] { height: 38px; }
@@ -320,19 +319,15 @@ button.danger:hover{ filter:brightness(1.02); }
   .pill button{ padding: 4px 8px; font-size: 12px; border-radius: 10px; }
   .kpis .kpi .label{ font-size: 11px; }
   .kpis .kpi .val{ font-size: 16px; }
-
-  /* Progreso un poco más fino */
   .progress{ height: 6px; border-radius: 6px; }
 
-  /* Modal */
   dialog#modal-carga{ width: 96vw; max-width: 520px; }
   #modal-carga .form_grid{ display:grid; grid-template-columns: 1fr; gap: 12px; }
-  #modal-carga .row2 > div{ grid-column: 1 / -1 !important; } /* Sabor 2 debajo del 1 */
+  #modal-carga .row2 > div{ grid-column: 1 / -1 !important; }
   #modal-carga .hint{ font-size: 12px; opacity:.8; }
   #modal-carga .primary{ padding: 10px 12px; font-size: 14px; }
   #modal-carga .btn-xs{ padding: 6px 10px; font-size: 12px; }
 
-  /* Tabla detalle compacta en móvil */
   .m-item{ display:grid; gap:10px; }
   .m-line1{ display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; }
   .m-plr{ display:grid; grid-auto-flow:column; gap:8px; font-size:12px; }
@@ -342,86 +337,106 @@ button.danger:hover{ filter:brightness(1.02); }
 /* Acción borrar también en móvil (más chica) */
 .btn-group .btn-del{ padding: 6px 10px; font-size: 12px; border-radius: 10px; }
 
-/* Tamaño base (desktop/tablet) */
+/* Badge más grande y proporcional */
 .card .badge{
-  font-size: 0.9rem;        /* ajustá si querés también en desktop */
+  font-size: 0.9rem;
   font-weight: 600;
   letter-spacing: .2px;
 }
-
-/* Mobile */
 @media (max-width: 600px){
-  /* Escala con el ancho de pantalla y queda en proporción con los KPIs */
   .card .badge{
     font-size: clamp(1rem, 3.6vw, 1.25rem);
-    padding: 6px 10px;      /* un poco más de “aire” */
+    padding: 6px 10px;
     border-radius: 14px;
   }
-
-  /* (opcional) si querés subir un toque los números Plan/Real para mantener proporción */
   .card .kpis .kpi .val{
     font-size: clamp(1.05rem, 4.1vw, 1.45rem);
   }
 }
 
-/* ===== Tema claro: Soft Light ===== */
+/* ===== Tema claro: Soft Light (override) ===== */
 :root[data-theme="light"]{
   --bg: #f6f7fb;
   --panel: #ffffff;
   --panel-2: #f3f4f6;
+  --card:#ffffff;
+
   --text: #0f172a;
   --muted: #64748b;
+
   --border: #e5e7eb;
+  --border-2: #e5e7eb;
+  --track: #e5e7eb;
 
-  --chip-bg: #eef2ff;
-  --chip-text: #3730a3;
+  --chip:#eef2ff;
+  --chipActive:#e0e7ff;
 
-  --ok-bg:    #ecfdf5;
-  --ok-br:    #a7f3d0;
-  --warn-bg:  #fff7ed;
-  --warn-br:  #fed7aa;
-  --bad-bg:   #fef2f2;
-  --bad-br:   #fecaca;
+  --green:#16a34a;
+  --yellow:#f59e0b;
+  --red:#ef4444;
+  --blue:#3b82f6;
 }
 
-/* Base */
 :root[data-theme="light"] body{ background:var(--bg); color:var(--text); }
+:root[data-theme="light"] header{
+  background:rgba(255,255,255,.85);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+}
+:root[data-theme="light"] .card,
 :root[data-theme="light"] dialog,
-:root[data-theme="light"] .modal,
-:root[data-theme="light"] .card{
+:root[data-theme="light"] aside,
+:root[data-theme="light"] .row{
   background:var(--panel);
   border:1px solid var(--border);
-  box-shadow: 0 8px 24px rgba(0,0,0,.05);
+  box-shadow:0 8px 24px rgba(0,0,0,.05);
 }
 
-/* Tono por cumplimiento (viene de .tone-ok/.tone-warn/.tone-bad que ya agregamos) */
-:root[data-theme="light"] .card.tone-ok   { background: linear-gradient(0deg,var(--ok-bg),var(--panel));   border-color:var(--ok-br); }
-:root[data-theme="light"] .card.tone-warn { background: linear-gradient(0deg,var(--warn-bg),var(--panel)); border-color:var(--warn-br); }
-:root[data-theme="light"] .card.tone-bad  { background: linear-gradient(0deg,var(--bad-bg),var(--panel));  border-color:var(--bad-br); }
-
-/* Badge de “Cumplimiento” */
+/* Badge */
 :root[data-theme="light"] .card .badge{
-  background:var(--chip-bg);
-  color:var(--chip-text);
+  background:#eef2ff;
+  color:#3730a3;
   border:1px solid #dbeafe;
-  font-weight:600;
 }
 
-/* Pastillas de turnos */
-:root[data-theme="light"] .pill button{
+/* Pastillas */
+:root[data-theme="light"] .pill{ background:var(--panel-2); border-color:var(--border); }
+:root[data-theme="light"] .pill button{ color:var(--text); }
+:root[data-theme="light"] .pill button.active{ background:#e8edff; color:var(--text); }
+:root[data-theme="light"] .pill-card button{
   background:var(--panel-2);
   color:var(--text);
   border:1px solid var(--border);
 }
+:root[data-theme="light"] .pill-card button.active{
+  background:#e8edff; border-color:#c7d2fe; box-shadow:0 0 0 1px #dbeafe inset;
+}
 
-/* Botón “Ver detalle” (override del inline style) */
+/* Botones / cierres */
+:root[data-theme="light"] .btn-toggle,
+:root[data-theme="light"] button.primary,
+:root[data-theme="light"] .close{
+  background:var(--panel-2);
+  color:var(--text);
+  border:1px solid var(--border);
+}
 :root[data-theme="light"] button[aria-label="Ver detalle"]{
   background:var(--panel-2) !important;
   border:1px solid var(--border) !important;
   color:var(--text) !important;
 }
 
-/* Barra de progreso (track más claro) */
-:root[data-theme="light"] .progress{
-  background:#e5e7eb;
+/* Banner */
+:root[data-theme="light"] .banner{
+  background:#eef2ff;
+  color:#3730a3;
+  border-bottom:1px solid #dbeafe;
 }
+
+/* Track progreso claro */
+:root[data-theme="light"] .progress{ background:var(--track); }
+
+/* Tonos por cumplimiento sobre claro */
+:root[data-theme="light"] .card.tone-ok   { background: linear-gradient(0deg,#ecfdf5,var(--panel)); border-color:#a7f3d0; }
+:root[data-theme="light"] .card.tone-warn { background: linear-gradient(0deg,#fff7ed,var(--panel)); border-color:#fed7aa; }
+:root[data-theme="light"] .card.tone-bad  { background: linear-gradient(0deg,#fef2f2,var(--panel)); border-color:#fecaca; }
