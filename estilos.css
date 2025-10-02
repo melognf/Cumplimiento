@@ -363,3 +363,65 @@ button.danger:hover{ filter:brightness(1.02); }
     font-size: clamp(1.05rem, 4.1vw, 1.45rem);
   }
 }
+
+/* ===== Tema claro: Soft Light ===== */
+:root[data-theme="light"]{
+  --bg: #f6f7fb;
+  --panel: #ffffff;
+  --panel-2: #f3f4f6;
+  --text: #0f172a;
+  --muted: #64748b;
+  --border: #e5e7eb;
+
+  --chip-bg: #eef2ff;
+  --chip-text: #3730a3;
+
+  --ok-bg:    #ecfdf5;
+  --ok-br:    #a7f3d0;
+  --warn-bg:  #fff7ed;
+  --warn-br:  #fed7aa;
+  --bad-bg:   #fef2f2;
+  --bad-br:   #fecaca;
+}
+
+/* Base */
+:root[data-theme="light"] body{ background:var(--bg); color:var(--text); }
+:root[data-theme="light"] dialog,
+:root[data-theme="light"] .modal,
+:root[data-theme="light"] .card{
+  background:var(--panel);
+  border:1px solid var(--border);
+  box-shadow: 0 8px 24px rgba(0,0,0,.05);
+}
+
+/* Tono por cumplimiento (viene de .tone-ok/.tone-warn/.tone-bad que ya agregamos) */
+:root[data-theme="light"] .card.tone-ok   { background: linear-gradient(0deg,var(--ok-bg),var(--panel));   border-color:var(--ok-br); }
+:root[data-theme="light"] .card.tone-warn { background: linear-gradient(0deg,var(--warn-bg),var(--panel)); border-color:var(--warn-br); }
+:root[data-theme="light"] .card.tone-bad  { background: linear-gradient(0deg,var(--bad-bg),var(--panel));  border-color:var(--bad-br); }
+
+/* Badge de “Cumplimiento” */
+:root[data-theme="light"] .card .badge{
+  background:var(--chip-bg);
+  color:var(--chip-text);
+  border:1px solid #dbeafe;
+  font-weight:600;
+}
+
+/* Pastillas de turnos */
+:root[data-theme="light"] .pill button{
+  background:var(--panel-2);
+  color:var(--text);
+  border:1px solid var(--border);
+}
+
+/* Botón “Ver detalle” (override del inline style) */
+:root[data-theme="light"] button[aria-label="Ver detalle"]{
+  background:var(--panel-2) !important;
+  border:1px solid var(--border) !important;
+  color:var(--text) !important;
+}
+
+/* Barra de progreso (track más claro) */
+:root[data-theme="light"] .progress{
+  background:#e5e7eb;
+}
