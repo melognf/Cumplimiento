@@ -1,6 +1,8 @@
 import { app, db } from './firebase-config.js';
 import { doc, onSnapshot, setDoc, deleteField } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { getStorage, ref as sRef, uploadBytes, getDownloadURL } 
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js';
 
 /* ---------------- Config & estado ---------------- */
 const FIREBASE_READY = !!(app?.options?.projectId && !String(app.options.projectId).includes('TU_PROJECT_ID'));
@@ -122,6 +124,92 @@ function findExistingKey(linea, typed){
   }
   return null;
 }
+
+// === Crear PDF con los datos actuales (Totales y por turno) ===
+async function crearPDFDesdeState() {
+  // jsPDF UMD
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
+  const fecha = state.fecha || new Date().toISOString().slice(0,10);
+  const mm = 40;  // margen
+  let y  = 48;
+
+  // Título
+  doc.setFont('helvetica','bold'); doc.setFontSize(16);
+  doc.text(`Informe PP — ${fecha}`, mm, y); y += 18;
+  doc.setFont('helvetica','normal'); doc.setFontSize(11);
+  doc.text(`Generado desde Cumplimiento Diario`, mm, y); y += 18;
+
+  // Recorro líneas
+  for (const linea of Object.keys(state.lineas || {})) {
+    const agg = aggregateLinea(state.lineas[linea]);
+    // Salto de página si hace falta
+    if (y > 760) { doc.addPage(); y = 48; }
+
+    doc.setFont('helvetica','bold'); doc.setFontSize(13);
+    doc.text(linea, mm, y); y += 14;
+
+    doc.setFont('helvetica','normal'); doc.setFontSize(11);
+    const filas = [
+      ['T1', agg.plan.t1, agg.real.t1],
+      ['T2', agg.plan.t2, agg.real.t2],
+      ['T3', agg.plan.t3, agg.real.t3],
+      ['TOTAL', agg.plan.total, agg.real.total],
+    ];
+
+    filas.forEach(([lbl, p, r]) => {
+      const c = cumplimiento(p, r);
+      doc.text(`${lbl}  ·  Plan: ${fmt(p)}   Real: ${fmt(r)}   Cump.: ${isFinite(c)?c.toFixed(1)+'%':'-'}`, mm+12, y);
+      y += 14;
+    });
+
+    y += 8;
+    // línea separadora
+    doc.setDrawColor(220); doc.line(mm, y, 555, y); y += 12;
+  }
+
+  const filename = `informe-pp-${fecha}.pdf`;
+  const blob = doc.output('blob');
+  return { blob, filename };
+}
+
+// === Subir a Firebase Storage y devolver URL pública ===
+async function subirPdfYObtenerURL(blob, filename) {
+  const storage = getStorage();
+  const path = `reportes/${state.fecha}/${filename}`;
+  const ref  = sRef(storage, path);
+  await uploadBytes(ref, blob, { contentType: 'application/pdf' });
+  return await getDownloadURL(ref);
+}
+
+// === Compartir por WhatsApp (móvil primero) ===
+async function compartirPorWhatsApp() {
+  try {
+    const { blob, filename } = await crearPDFDesdeState();
+
+    // 1) Si el dispositivo soporta compartir archivos (Android/iOS)
+    if (navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: 'application/pdf' })] })) {
+      const file = new File([blob], filename, { type:'application/pdf' });
+      await navigator.share({ title: 'Informe PP', text: `Informe PP ${state.fecha}`, files: [file] });
+      notify('Compartido ✔');
+      return;
+    }
+
+    // 2) Fallback: subir a Storage y abrir WhatsApp Web con el link
+    const url = await subirPdfYObtenerURL(blob, filename);
+    const texto = `Informe PP ${state.fecha} → ${url}`;
+    const wa = `https://wa.me/?text=${encodeURIComponent(texto)}`;
+    window.open(wa, '_blank');
+    notify('Abrí WhatsApp para enviar el enlace del PDF.');
+  } catch (e) {
+    console.error(e);
+    notify('No se pudo generar/compartir el PDF');
+  }
+}
+
+// (opcional) exporto a window para enganchar un botón
+window.exportarYCompartirPP = compartirPorWhatsApp;
 
 /* ---------------- LocalStorage ---------------- */
 const LS = {

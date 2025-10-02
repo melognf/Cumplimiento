@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="estilos.css">
   <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1b2a3a">
+<!-- en <head> -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
 </head>
 <body class="sin-top">
@@ -29,6 +31,7 @@
 <!-- Mantener los checkboxes (ocultos) para no romper tu app -->
 <label class="vh"><input id="toggleEmpty" type="checkbox" /></label>
 <label class="vh"><input id="toggleCarga" type="checkbox" /></label>
+  <button class="btn-toggle" onclick="exportarYCompartirPP()">Enviar PDF por WhatsApp</button>
 
       <div class="toggle" role="tablist" aria-label="Filtro de turno">
         <button class="active" data-turno="total">Total</button>
@@ -36,6 +39,7 @@
         <button data-turno="t2">T2 (Tarde)</button>
         <button data-turno="t3">T3 (Noche)</button>
       </div>
+      
     </div>
   </header>
 
@@ -138,6 +142,6 @@
 
   <script type="module" src="app.js?v=17"></script>
 
-  
+
 </body>
 </html>
