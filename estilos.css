@@ -3,7 +3,7 @@
   --bg:#0e1320;
   --panel:#121829;
   --panel-2:#0f172a;
-  --card:#0f172a;
+  --card:#0f2a15;
 
   --chip:#142036;
   --chipActive:#1a2a46;
@@ -301,7 +301,7 @@ button.danger:hover{ filter:brightness(1.02); }
 .card.tone-ok   { background: rgba(16, 185, 129, 0.10); border: 1px solid rgba(16,185,129,.25); }
 .card.tone-warn { background: rgba(245, 158, 11, 0.10); border: 1px solid rgba(245,158,11,.25); }
 .card.tone-bad  { background: rgba(239, 68, 68, 0.10);  border: 1px solid rgba(239,68,68,.25); }
-.card.tone-unk  { background: rgba(148, 163, 184, 0.10); border: 1px solid rgba(148,163,184,.25); }
+.card.tone-unk  { background: rgba(215, 217, 210, 0.2); border: 1px solid rgba(148,163,184,.25); }
 
 /* Botones compactos */
 .btn-xs { padding: 6px 10px !important; font-size: 12px !important; border-radius: 10px !important; }
